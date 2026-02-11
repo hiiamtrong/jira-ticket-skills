@@ -9,7 +9,7 @@ Orchestrate the full lifecycle of resolving a Jira ticket: fetch assigned work, 
 
 **Announce:** "Using resolve-jira-ticket to analyze and resolve a Jira ticket."
 
-**Configuration:** The Jira project key is configured via `JIRA_PROJECT_KEY` env var in settings. Read this value at the start and use it throughout the workflow. If not set, **ask the user** for the project key before proceeding.
+**Configuration:** The Jira project key is configured via `JIRA_PROJECT_KEY` env var (Claude Code, Antigravity) or in a rules file (Cursor). Read this value at the start and use it throughout the workflow. If not set, **ask the user** for the project key before proceeding.
 
 ## Phase 1: Fetch and Select Ticket
 
@@ -17,7 +17,7 @@ Orchestrate the full lifecycle of resolving a Jira ticket: fetch assigned work, 
 
 **Otherwise:**
 
-1. Read project key from env var `$JIRA_PROJECT_KEY`. If not set, **stop and ask the user** for the project key.
+1. Read project key from `JIRA_PROJECT_KEY` (env var or rules context). If not set, **stop and ask the user** for the project key.
 2. Search using Jira MCP tools with JQL:
 ```
 project = $JIRA_PROJECT_KEY AND assignee = currentUser() AND status IN ("To Do", "In Progress", "Re-Open") ORDER BY priority DESC, created DESC

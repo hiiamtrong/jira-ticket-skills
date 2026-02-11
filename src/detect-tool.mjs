@@ -21,8 +21,9 @@ export const TOOL_CONFIGS = {
     skillFile: 'SKILL.md',
     mcpConfig: (root) => path.join(root, '.cursor', 'mcp.json'),
     mcpKey: 'mcpServers',
-    settingsFile: (root) => path.join(root, '.cursor', 'settings.json'),
-    settingsEnvPath: ['env'],
+    settingsType: 'rules',
+    settingsFile: (root) =>
+      path.join(root, '.cursor', 'rules', 'jira-config.mdc'),
   },
   antigravity: {
     label: 'Antigravity',

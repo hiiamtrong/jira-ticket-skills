@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { readJson, writeJson, deepMerge, log } from '../utils.mjs';
+import { readJson, writeJson, writeFile, removeFile, log } from '../utils.mjs';
 import { getToolConfig } from '../detect-tool.mjs';
 
 /**
@@ -9,23 +9,30 @@ export function installSettings(projectRoot, toolKey, config) {
   const toolConfig = getToolConfig(toolKey);
   if (!toolConfig) throw new Error(`Unknown tool: ${toolKey}`);
 
+  if (toolConfig.settingsType === 'rules') {
+    return installRulesSettings(projectRoot, toolConfig, config);
+  }
+
+  return installJsonSettings(projectRoot, toolConfig, config);
+}
+
+/**
+ * Write env vars into a JSON settings file (Claude Code, Antigravity).
+ */
+function installJsonSettings(projectRoot, toolConfig, config) {
   const settingsPath = toolConfig.settingsFile(projectRoot);
   const existing = readJson(settingsPath) || {};
 
-  // Build the env object at the correct nested path
   const envUpdate = { JIRA_PROJECT_KEY: config.projectKey };
 
-  // Navigate to the correct nesting using settingsEnvPath
   let target = existing;
   const envPath = toolConfig.settingsEnvPath;
 
   for (let i = 0; i < envPath.length; i++) {
     const key = envPath[i];
     if (i === envPath.length - 1) {
-      // Last key: merge env vars
       target[key] = { ...(target[key] || {}), ...envUpdate };
     } else {
-      // Intermediate key: ensure object exists
       target[key] = target[key] || {};
       target = target[key];
     }
@@ -38,12 +45,49 @@ export function installSettings(projectRoot, toolKey, config) {
 }
 
 /**
+ * Write config as a Cursor rules file (.mdc) so the AI reads it as context.
+ */
+function installRulesSettings(projectRoot, toolConfig, config) {
+  const rulesPath = toolConfig.settingsFile(projectRoot);
+
+  const content = `---
+description: Jira project configuration for resolve-jira-ticket skill
+globs:
+alwaysApply: true
+---
+
+# Jira Configuration
+
+- **JIRA_PROJECT_KEY**: \`${config.projectKey}\`
+
+When using the resolve-jira-ticket skill or searching Jira, use project key \`${config.projectKey}\`.
+For JQL queries, use: \`project = ${config.projectKey}\`
+`;
+
+  writeFile(rulesPath, content);
+
+  const relPath = path.relative(projectRoot, rulesPath);
+  log.success(`Set JIRA_PROJECT_KEY=${config.projectKey} in ${relPath}`);
+}
+
+/**
  * Uninstall settings we added.
  */
 export function uninstallSettings(projectRoot, toolKey) {
   const toolConfig = getToolConfig(toolKey);
   if (!toolConfig) return;
 
+  if (toolConfig.settingsType === 'rules') {
+    return uninstallRulesSettings(projectRoot, toolConfig);
+  }
+
+  return uninstallJsonSettings(projectRoot, toolConfig);
+}
+
+/**
+ * Remove env var from JSON settings file.
+ */
+function uninstallJsonSettings(projectRoot, toolConfig) {
   const settingsPath = toolConfig.settingsFile(projectRoot);
   const existing = readJson(settingsPath);
   if (!existing) {
@@ -51,7 +95,6 @@ export function uninstallSettings(projectRoot, toolKey) {
     return;
   }
 
-  // Navigate to env object and remove our key
   let target = existing;
   const envPath = toolConfig.settingsEnvPath;
 
@@ -68,4 +111,17 @@ export function uninstallSettings(projectRoot, toolKey) {
   log.success(
     `Removed JIRA_PROJECT_KEY from ${path.relative(projectRoot, settingsPath)}`,
   );
+}
+
+/**
+ * Remove rules file.
+ */
+function uninstallRulesSettings(projectRoot, toolConfig) {
+  const rulesPath = toolConfig.settingsFile(projectRoot);
+
+  if (removeFile(rulesPath)) {
+    log.success(`Removed ${path.relative(projectRoot, rulesPath)}`);
+  } else {
+    log.info(`Rules file not found: ${path.relative(projectRoot, rulesPath)}`);
+  }
 }

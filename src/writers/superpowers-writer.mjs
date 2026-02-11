@@ -1,7 +1,8 @@
 import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import pc from 'picocolors';
-import { log, commandExists, fileExists } from '../utils.mjs';
+import { log, commandExists, fileExists, ensureDir } from '../utils.mjs';
 
 /**
  * Install superpowers for a specific AI tool.
@@ -122,11 +123,28 @@ function installForCursor() {
 }
 
 /**
+ * Recursively copy directory contents without overwriting existing files.
+ */
+function copyDirNoOverwrite(src, dest) {
+  ensureDir(dest);
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      copyDirNoOverwrite(srcPath, destPath);
+    } else if (!fileExists(destPath)) {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+/**
  * Antigravity: clone gemini-superpowers-antigravity and copy skills
  */
 function installForAntigravity(projectRoot) {
-  const skillsDir = path.join(projectRoot, '.agent', 'skills');
-
   // Check if git is available
   if (!commandExists('git')) {
     log.warn('git not found. Install superpowers manually for Antigravity:');
@@ -137,8 +155,11 @@ function installForAntigravity(projectRoot) {
     return;
   }
 
-  // Clone to temp, copy skills
+  // Clone to temp dir (clean up first in case of previous failed install)
   const tempDir = path.join(projectRoot, '.agent', '.superpowers-tmp');
+  if (fileExists(tempDir)) {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
 
   try {
     log.info('Cloning superpowers for Antigravity...');
@@ -155,49 +176,49 @@ function installForAntigravity(projectRoot) {
 
     // Repo structure: .agent/skills/, .agent/rules/, .agent/workflows/
     const agentSrc = path.join(tempDir, '.agent');
+    let copied = false;
 
     // Copy skills
     const srcSkills = path.join(agentSrc, 'skills');
+    const destSkills = path.join(projectRoot, '.agent', 'skills');
     if (fileExists(srcSkills)) {
-      execFileSync('cp', ['-rn', `${srcSkills}/.`, skillsDir], {
-        encoding: 'utf-8',
-        stdio: 'pipe',
-      });
+      copyDirNoOverwrite(srcSkills, destSkills);
       log.success('Superpowers skills copied to .agent/skills/');
+      copied = true;
     }
 
     // Copy rules
     const srcRules = path.join(agentSrc, 'rules');
     const destRules = path.join(projectRoot, '.agent', 'rules');
     if (fileExists(srcRules)) {
-      execFileSync('cp', ['-rn', `${srcRules}/.`, destRules], {
-        encoding: 'utf-8',
-        stdio: 'pipe',
-      });
+      copyDirNoOverwrite(srcRules, destRules);
       log.success('Superpowers rules copied to .agent/rules/');
+      copied = true;
     }
 
     // Copy workflows
     const srcWorkflows = path.join(agentSrc, 'workflows');
     const destWorkflows = path.join(projectRoot, '.agent', 'workflows');
     if (fileExists(srcWorkflows)) {
-      execFileSync('cp', ['-rn', `${srcWorkflows}/.`, destWorkflows], {
-        encoding: 'utf-8',
-        stdio: 'pipe',
-      });
+      copyDirNoOverwrite(srcWorkflows, destWorkflows);
       log.success('Superpowers workflows copied to .agent/workflows/');
+      copied = true;
+    }
+
+    if (!copied) {
+      log.warn('Cloned repo but no .agent/ directory found');
     }
 
     // Cleanup temp
-    execFileSync('rm', ['-rf', tempDir], { stdio: 'pipe' });
+    fs.rmSync(tempDir, { recursive: true, force: true });
   } catch (err) {
     // Cleanup on failure
     try {
-      execFileSync('rm', ['-rf', tempDir], { stdio: 'pipe' });
+      fs.rmSync(tempDir, { recursive: true, force: true });
     } catch {
       // ignore cleanup errors
     }
-    log.warn('Could not auto-install superpowers for Antigravity');
+    log.warn(`Could not auto-install superpowers for Antigravity: ${err.message}`);
     log.info(
       `  Clone: ${pc.cyan('https://github.com/anthonylee991/gemini-superpowers-antigravity')}`,
     );

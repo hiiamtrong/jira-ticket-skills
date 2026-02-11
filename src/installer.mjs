@@ -69,6 +69,10 @@ async function runInstall(args) {
   console.log('');
   log.success(pc.bold('Installation complete!'));
   console.log('');
+  log.warn(
+    `${pc.bold('Restart your current AI tool session')} for the new config to take effect.`,
+  );
+  console.log('');
 }
 
 /**

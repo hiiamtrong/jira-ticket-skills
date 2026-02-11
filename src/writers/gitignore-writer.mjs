@@ -7,7 +7,7 @@ import { getToolConfig } from '../detect-tool.mjs';
  */
 const GITIGNORE_ENTRIES = {
   claude: ['.mcp.json', '.claude/settings.json'],
-  cursor: ['.cursor/mcp.json', '.cursor/settings.json'],
+  cursor: ['.cursor/mcp.json'],
   antigravity: ['.agent/mcp.json', '.agent/settings.json'],
 };
 
