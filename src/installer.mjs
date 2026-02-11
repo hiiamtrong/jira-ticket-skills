@@ -1,10 +1,12 @@
+import prompts from 'prompts';
 import pc from 'picocolors';
-import { parseArgs, printBanner, log } from './utils.mjs';
+import { parseArgs, printBanner, log, commandExists } from './utils.mjs';
 import { runPrompts, runNonInteractive, checkPrerequisites } from './prompts.mjs';
-import { detectTools, TOOL_CONFIGS } from './detect-tool.mjs';
+import { TOOL_CONFIGS, getSupportedTools } from './detect-tool.mjs';
 import { installSkill, uninstallSkill } from './writers/skill-writer.mjs';
 import { installMcp, uninstallMcp } from './writers/mcp-writer.mjs';
 import { installSettings, uninstallSettings } from './writers/settings-writer.mjs';
+import { installSuperpowers } from './writers/superpowers-writer.mjs';
 
 const projectRoot = process.cwd();
 
@@ -50,8 +52,13 @@ async function runInstall(args) {
     installSettings(projectRoot, toolKey, config);
   }
 
-  // Post-install guidance
-  printSuperpowersGuide(config.tools);
+  // Install superpowers
+  log.step('Installing Superpowers...');
+  for (const toolKey of config.tools) {
+    await installSuperpowers(projectRoot, toolKey);
+  }
+
+  // Usage guide
   printUsageGuide(config);
 
   console.log('');
@@ -63,11 +70,30 @@ async function runInstall(args) {
  * Uninstall flow.
  */
 async function runUninstall(args) {
-  const tools = args.tool ? [args.tool] : detectTools(projectRoot);
+  let tools;
 
-  if (tools.length === 0) {
-    log.info('No AI tool configuration found. Nothing to uninstall.');
-    return;
+  if (args.tool) {
+    tools = [args.tool];
+  } else {
+    const allTools = getSupportedTools().map((key) => ({
+      title: TOOL_CONFIGS[key].label,
+      value: key,
+    }));
+
+    const result = await prompts({
+      type: 'multiselect',
+      name: 'value',
+      message: 'Uninstall from which AI tools?',
+      choices: allTools,
+      min: 1,
+      hint: 'Space to select, Enter to confirm',
+      instructions: false,
+    });
+
+    if (!result.value || result.value.length === 0) {
+      throw new Error('Cancelled - no tool selected');
+    }
+    tools = result.value;
   }
 
   log.step('Uninstalling...');
@@ -84,51 +110,6 @@ async function runUninstall(args) {
   console.log('');
   log.success(pc.bold('Uninstall complete!'));
   console.log('');
-}
-
-/**
- * Print superpowers installation guide per tool.
- */
-function printSuperpowersGuide(tools) {
-  log.step('Recommended: Install Superpowers');
-  console.log(
-    `  ${pc.dim('The resolve-jira-ticket skill chains these superpowers skills:')}`,
-  );
-  console.log(`  ${pc.dim('  - brainstorming')}`);
-  console.log(`  ${pc.dim('  - systematic-debugging')}`);
-  console.log(`  ${pc.dim('  - verification-before-completion')}`);
-  console.log('');
-
-  for (const toolKey of tools) {
-    switch (toolKey) {
-      case 'claude':
-        console.log(`  ${pc.bold('Claude Code:')}`);
-        console.log(`    ${pc.cyan('claude plugins install superpowers')}`);
-        break;
-
-      case 'cursor':
-        console.log(`  ${pc.bold('Cursor:')}`);
-        console.log(
-          `    ${pc.cyan('npm install -g prpm && prpm install collections/superpowers')}`,
-        );
-        console.log(`    ${pc.dim('or')}`);
-        console.log(
-          `    ${pc.cyan('bun add -g openskills && openskills install obra/superpowers --universal --global && openskills sync')}`,
-        );
-        break;
-
-      case 'antigravity':
-        console.log(`  ${pc.bold('Antigravity:')}`);
-        console.log(
-          `    Clone: ${pc.cyan('https://github.com/anthonylee991/gemini-superpowers-antigravity')}`,
-        );
-        console.log(
-          `    Copy skills into your ${pc.cyan('.agent/skills/')} directory`,
-        );
-        break;
-    }
-    console.log('');
-  }
 }
 
 /**

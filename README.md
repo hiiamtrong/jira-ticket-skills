@@ -18,13 +18,13 @@ The installer will prompt for:
 
 ## What Gets Installed
 
-| File | Purpose |
-|------|---------|
-| `.claude/skills/resolve-jira-ticket/SKILL.md` | The skill definition (Claude Code) |
-| `.cursor/skills/resolve-jira-ticket/SKILL.md` | The skill definition (Cursor) |
-| `.agent/skills/resolve-jira-ticket/SKILL.md` | The skill definition (Antigravity) |
-| `.mcp.json` / `.cursor/mcp.json` | MCP server configs (Jira + Figma) |
-| `.claude/settings.json` | Environment variables (`JIRA_PROJECT_KEY`) |
+| File                                          | Purpose                                    |
+| --------------------------------------------- | ------------------------------------------ |
+| `.claude/skills/resolve-jira-ticket/SKILL.md` | The skill definition (Claude Code)         |
+| `.cursor/skills/resolve-jira-ticket/SKILL.md` | The skill definition (Cursor)              |
+| `.agent/skills/resolve-jira-ticket/SKILL.md`  | The skill definition (Antigravity)         |
+| `.mcp.json` / `.cursor/mcp.json`              | MCP server configs (Jira + Figma)          |
+| `.claude/settings.json`                       | Environment variables (`JIRA_PROJECT_KEY`) |
 
 Only files for your selected tool(s) are created.
 
@@ -58,7 +58,7 @@ The skill chains three [superpowers](https://github.com/obra/superpowers) skills
 
 **Claude Code:**
 ```bash
-claude plugins install superpowers
+claude plugin install superpowers
 ```
 
 **Cursor:**

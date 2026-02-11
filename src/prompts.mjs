@@ -1,6 +1,6 @@
 import prompts from 'prompts';
 import pc from 'picocolors';
-import { detectTools, TOOL_CONFIGS, getSupportedTools } from './detect-tool.mjs';
+import { TOOL_CONFIGS, getSupportedTools } from './detect-tool.mjs';
 import { log, commandExists } from './utils.mjs';
 
 /**
@@ -128,20 +128,7 @@ async function promptTools(projectRoot, cliArgs) {
     return [cliArgs.tool];
   }
 
-  const detected = detectTools(projectRoot);
-
-  if (detected.length === 1) {
-    const label = TOOL_CONFIGS[detected[0]].label;
-    log.info(`Detected: ${pc.bold(label)}`);
-    return detected;
-  }
-
-  if (detected.length > 1) {
-    log.info(
-      `Detected multiple tools: ${detected.map((t) => TOOL_CONFIGS[t].label).join(', ')}`,
-    );
-  }
-
+  // Always ask user to choose platform
   const allTools = getSupportedTools().map((key) => ({
     title: TOOL_CONFIGS[key].label,
     value: key,
