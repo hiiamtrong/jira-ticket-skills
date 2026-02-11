@@ -1,6 +1,6 @@
 {
   "name": "jira-ticket-skills",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Install Jira ticket resolution skills for AI coding tools (Claude Code, Cursor, Antigravity)",
   "bin": {
     "jira-ticket-skills": "bin/cli.mjs"
