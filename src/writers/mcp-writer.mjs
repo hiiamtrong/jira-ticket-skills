@@ -1,11 +1,14 @@
+import os from 'node:os';
 import path from 'node:path';
 import { readJson, writeJson, deepMerge, log } from '../utils.mjs';
 import { getToolConfig } from '../detect-tool.mjs';
 
 /**
  * Build MCP server entries from user config.
+ * @param {object} config - User configuration
+ * @param {object} [toolConfig] - Tool-specific config (for HTTP URL key differences)
  */
-function buildMcpServers(config) {
+function buildMcpServers(config, toolConfig) {
   const servers = {};
 
   // Jira MCP (mcp-atlassian via uvx)
@@ -36,10 +39,17 @@ function buildMcpServers(config) {
 
   // Figma HTTP MCP
   if (config.figma) {
-    servers.figma = {
-      type: 'http',
-      url: 'https://mcp.figma.com/mcp',
-    };
+    // Antigravity uses "serverUrl" instead of "url" for HTTP MCP servers
+    if (toolConfig?.httpUrlKey) {
+      servers.figma = {
+        [toolConfig.httpUrlKey]: 'https://mcp.figma.com/mcp',
+      };
+    } else {
+      servers.figma = {
+        type: 'http',
+        url: 'https://mcp.figma.com/mcp',
+      };
+    }
   }
 
   // Figma Bridge (via npx @gethopp/figma-mcp-bridge)
@@ -64,7 +74,7 @@ export function installMcp(projectRoot, toolKey, config) {
   const mcpKey = toolConfig.mcpKey;
   const existing = readJson(mcpPath) || {};
 
-  const newServers = buildMcpServers(config);
+  const newServers = buildMcpServers(config, toolConfig);
   const existingServers = existing[mcpKey] || {};
 
   const added = [];
@@ -83,14 +93,27 @@ export function installMcp(projectRoot, toolKey, config) {
   existing[mcpKey] = existingServers;
   writeJson(mcpPath, existing);
 
-  const relPath = path.relative(projectRoot, mcpPath);
+  const displayPath = formatDisplayPath(projectRoot, mcpPath);
   if (added.length) {
-    log.success(`Added MCP servers to ${relPath}: ${added.join(', ')}`);
+    log.success(`Added MCP servers to ${displayPath}: ${added.join(', ')}`);
   }
   if (updated.length) {
-    log.success(`Updated MCP servers in ${relPath}: ${updated.join(', ')}`);
+    log.success(`Updated MCP servers in ${displayPath}: ${updated.join(', ')}`);
   }
+}
 
+/**
+ * Format a path for display: use relative for project files, ~ for home dir files.
+ */
+function formatDisplayPath(projectRoot, filePath) {
+  if (filePath.startsWith(projectRoot)) {
+    return path.relative(projectRoot, filePath);
+  }
+  const home = os.homedir();
+  if (filePath.startsWith(home)) {
+    return '~' + filePath.slice(home.length);
+  }
+  return filePath;
 }
 
 /**
@@ -121,7 +144,7 @@ export function uninstallMcp(projectRoot, toolKey) {
   if (removed.length) {
     writeJson(mcpPath, existing);
     log.success(
-      `Removed MCP servers from ${path.relative(projectRoot, mcpPath)}: ${removed.join(', ')}`,
+      `Removed MCP servers from ${formatDisplayPath(projectRoot, mcpPath)}: ${removed.join(', ')}`,
     );
   } else {
     log.info('No MCP servers to remove');

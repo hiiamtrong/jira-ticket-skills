@@ -8,7 +8,8 @@ import { getToolConfig } from '../detect-tool.mjs';
 const GITIGNORE_ENTRIES = {
   claude: ['.mcp.json', '.claude/settings.json'],
   cursor: ['.cursor/mcp.json'],
-  antigravity: ['.agent/mcp.json', '.agent/settings.json'],
+  // Antigravity MCP config is global (~/.gemini/antigravity/mcp_config.json), not in project
+  antigravity: [],
 };
 
 /**

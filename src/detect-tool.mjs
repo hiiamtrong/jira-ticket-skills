@@ -1,3 +1,4 @@
+import os from 'node:os';
 import path from 'node:path';
 import { fileExists } from './utils.mjs';
 
@@ -26,16 +27,20 @@ export const TOOL_CONFIGS = {
       path.join(root, '.cursor', 'rules', 'jira-config.mdc'),
   },
   antigravity: {
-    label: 'Antigravity',
+    label: 'Antigravity (Google)',
     skillDir: (root) =>
       path.join(root, '.agent', 'skills', 'resolve-jira-ticket'),
     skillFile: 'SKILL.md',
     workflowDir: (root) => path.join(root, '.agent', 'workflows'),
     workflowFile: 'resolve-jira-ticket.md',
-    mcpConfig: (root) => path.join(root, '.agent', 'mcp.json'),
+    // Antigravity IDE uses global config at ~/.gemini/antigravity/mcp_config.json
+    mcpConfig: () => path.join(os.homedir(), '.gemini', 'antigravity', 'mcp_config.json'),
     mcpKey: 'mcpServers',
-    settingsFile: (root) => path.join(root, '.agent', 'settings.json'),
-    settingsEnvPath: ['env'],
+    // Antigravity uses "serverUrl" instead of "url" for HTTP MCP servers
+    httpUrlKey: 'serverUrl',
+    settingsType: 'rules',
+    settingsFile: (root) =>
+      path.join(root, '.agent', 'rules', 'jira-config.md'),
   },
 };
 
@@ -52,7 +57,11 @@ export function detectTools(projectRoot) {
   if (fileExists(path.join(projectRoot, '.cursor'))) {
     detected.push('cursor');
   }
-  if (fileExists(path.join(projectRoot, '.agent'))) {
+  if (
+    fileExists(path.join(projectRoot, '.gemini')) ||
+    fileExists(path.join(projectRoot, '.agent')) ||
+    fileExists(path.join(os.homedir(), '.gemini', 'antigravity'))
+  ) {
     detected.push('antigravity');
   }
 
