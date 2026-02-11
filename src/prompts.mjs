@@ -91,26 +91,15 @@ export async function runPrompts(projectRoot, cliArgs) {
   if (!cliArgs.noFigma) {
     log.step('Figma Integration');
 
-    const enableFigma = await prompts({
+    const figmaBridge = await prompts({
       type: 'confirm',
       name: 'value',
-      message: 'Enable Figma design integration?',
+      message:
+        'Install Figma Bridge (connects to Figma desktop app for live design context)?',
       initial: true,
     });
-    config.figma = enableFigma.value ?? false;
-
-    if (config.figma) {
-      const figmaBridge = await prompts({
-        type: 'confirm',
-        name: 'value',
-        message:
-          'Also install Figma Bridge (connects to Figma desktop app for live design context)?',
-        initial: true,
-      });
-      config.figmaBridge = figmaBridge.value ?? false;
-    }
+    config.figmaBridge = figmaBridge.value ?? false;
   } else {
-    config.figma = false;
     config.figmaBridge = false;
   }
 
@@ -176,7 +165,6 @@ export function runNonInteractive(cliArgs) {
     jiraToken,
     jiraAuthMethod: 'personal_token',
     projectKey: projectKey.toUpperCase(),
-    figma: !cliArgs.noFigma,
     figmaBridge: !cliArgs.noFigma,
   };
 }

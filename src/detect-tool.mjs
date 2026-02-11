@@ -36,8 +36,6 @@ export const TOOL_CONFIGS = {
     // Antigravity IDE uses global config at ~/.gemini/antigravity/mcp_config.json
     mcpConfig: () => path.join(os.homedir(), '.gemini', 'antigravity', 'mcp_config.json'),
     mcpKey: 'mcpServers',
-    // Antigravity uses "serverUrl" instead of "url" for HTTP MCP servers
-    httpUrlKey: 'serverUrl',
     settingsType: 'rules',
     settingsFile: (root) =>
       path.join(root, '.agent', 'rules', 'jira-config.md'),

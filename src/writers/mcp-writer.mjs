@@ -5,10 +5,8 @@ import { getToolConfig } from '../detect-tool.mjs';
 
 /**
  * Build MCP server entries from user config.
- * @param {object} config - User configuration
- * @param {object} [toolConfig] - Tool-specific config (for HTTP URL key differences)
  */
-function buildMcpServers(config, toolConfig) {
+function buildMcpServers(config) {
   const servers = {};
 
   // Jira MCP (mcp-atlassian via uvx)
@@ -37,21 +35,6 @@ function buildMcpServers(config, toolConfig) {
     };
   }
 
-  // Figma HTTP MCP
-  if (config.figma) {
-    // Antigravity uses "serverUrl" instead of "url" for HTTP MCP servers
-    if (toolConfig?.httpUrlKey) {
-      servers.figma = {
-        [toolConfig.httpUrlKey]: 'https://mcp.figma.com/mcp',
-      };
-    } else {
-      servers.figma = {
-        type: 'http',
-        url: 'https://mcp.figma.com/mcp',
-      };
-    }
-  }
-
   // Figma Bridge (via npx @gethopp/figma-mcp-bridge)
   if (config.figmaBridge) {
     servers['figma-bridge'] = {
@@ -74,7 +57,7 @@ export function installMcp(projectRoot, toolKey, config) {
   const mcpKey = toolConfig.mcpKey;
   const existing = readJson(mcpPath) || {};
 
-  const newServers = buildMcpServers(config, toolConfig);
+  const newServers = buildMcpServers(config);
   const existingServers = existing[mcpKey] || {};
 
   const added = [];
@@ -131,7 +114,7 @@ export function uninstallMcp(projectRoot, toolKey) {
     return;
   }
 
-  const serversToRemove = ['jira', 'figma', 'figma-bridge'];
+  const serversToRemove = ['jira', 'figma-bridge'];
   const removed = [];
 
   for (const name of serversToRemove) {
