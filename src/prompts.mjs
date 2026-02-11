@@ -20,6 +20,7 @@ export async function runPrompts(projectRoot, cliArgs) {
     name: 'value',
     message: 'Jira instance URL',
     initial: process.env.JIRA_URL || '',
+    format: (v) => v.trim(),
     validate: (v) => {
       if (!v.trim()) return 'URL is required';
       try {
@@ -32,8 +33,8 @@ export async function runPrompts(projectRoot, cliArgs) {
   });
   if (jiraUrl.value === undefined) throw new Error('Cancelled');
   config.jiraUrl = jiraUrl.value.startsWith('http')
-    ? jiraUrl.value.trim()
-    : `https://${jiraUrl.value.trim()}`;
+    ? jiraUrl.value
+    : `https://${jiraUrl.value}`;
 
   const jiraAuth = await prompts({
     type: 'select',
@@ -52,10 +53,11 @@ export async function runPrompts(projectRoot, cliArgs) {
       type: 'text',
       name: 'value',
       message: 'Jira account email',
-      validate: (v) => (v.includes('@') ? true : 'Valid email required'),
+      format: (v) => v.trim(),
+      validate: (v) => (v.trim().includes('@') ? true : 'Valid email required'),
     });
     if (email.value === undefined) throw new Error('Cancelled');
-    config.jiraEmail = email.value.trim();
+    config.jiraEmail = email.value;
   }
 
   const jiraToken = await prompts({
@@ -65,23 +67,25 @@ export async function runPrompts(projectRoot, cliArgs) {
       config.jiraAuthMethod === 'personal_token'
         ? 'Jira Personal Token'
         : 'Jira API Token',
+    format: (v) => v.trim(),
     validate: (v) => (v.trim() ? true : 'Token is required'),
   });
   if (jiraToken.value === undefined) throw new Error('Cancelled');
-  config.jiraToken = jiraToken.value.trim();
+  config.jiraToken = jiraToken.value;
 
   const projectKey = await prompts({
     type: 'text',
     name: 'value',
     message: 'Default Jira project key (e.g. PRJ)',
     initial: process.env.JIRA_PROJECT_KEY || '',
+    format: (v) => v.trim().toUpperCase(),
     validate: (v) =>
       /^[A-Z][A-Z0-9]{1,9}$/.test(v.trim().toUpperCase())
         ? true
         : 'Must be 2-10 uppercase letters/numbers, starting with a letter',
   });
   if (projectKey.value === undefined) throw new Error('Cancelled');
-  config.projectKey = projectKey.value.trim().toUpperCase();
+  config.projectKey = projectKey.value;
 
   // ── 3. Figma configuration ───────────────────────────────────────────
   if (!cliArgs.noFigma) {
@@ -155,10 +159,10 @@ async function promptTools(projectRoot, cliArgs) {
  * Run non-interactive mode using env vars.
  */
 export function runNonInteractive(cliArgs) {
-  const jiraUrl = process.env.JIRA_URL;
-  const jiraToken = process.env.JIRA_TOKEN;
-  const projectKey = process.env.JIRA_PROJECT_KEY;
-  const tool = cliArgs.tool || process.env.TOOL || 'claude';
+  const jiraUrl = process.env.JIRA_URL?.trim();
+  const jiraToken = process.env.JIRA_TOKEN?.trim();
+  const projectKey = process.env.JIRA_PROJECT_KEY?.trim();
+  const tool = (cliArgs.tool || process.env.TOOL || 'claude').trim();
 
   if (!jiraUrl) throw new Error('JIRA_URL env var is required in --yes mode');
   if (!jiraToken)
@@ -168,7 +172,7 @@ export function runNonInteractive(cliArgs) {
 
   return {
     tools: [tool],
-    jiraUrl,
+    jiraUrl: jiraUrl.startsWith('http') ? jiraUrl : `https://${jiraUrl}`,
     jiraToken,
     jiraAuthMethod: 'personal_token',
     projectKey: projectKey.toUpperCase(),
@@ -179,17 +183,29 @@ export function runNonInteractive(cliArgs) {
 
 /**
  * Check prerequisites and print warnings.
+ * Returns detected Jira runner: 'uvx' | 'uv' | null
  */
 export function checkPrerequisites() {
   log.step('Checking prerequisites...');
 
-  if (!commandExists('uvx')) {
-    log.warn(
-      `${pc.bold('uvx')} not found. Required for Jira MCP server (mcp-atlassian).`,
-    );
-    log.info(`Install: ${pc.cyan('pip install uv')} or ${pc.cyan('pipx install uv')}`);
-    console.log('');
-  } else {
+  if (commandExists('uvx')) {
     log.success('uvx found');
+    return 'uvx';
   }
+
+  if (commandExists('uv')) {
+    log.success('uv found (will use "uv tool run" instead of uvx)');
+    return 'uv';
+  }
+
+  log.warn(
+    `${pc.bold('uvx')} not found. Required for Jira MCP server (mcp-atlassian).`,
+  );
+  if (process.platform === 'win32') {
+    log.info(`Install: ${pc.cyan('pip install uv')} or ${pc.cyan('winget install astral-sh.uv')}`);
+  } else {
+    log.info(`Install: ${pc.cyan('pip install uv')} or ${pc.cyan('brew install uv')}`);
+  }
+  console.log('');
+  return null;
 }

@@ -125,7 +125,8 @@ export function parseArgs(args) {
 
 export function commandExists(cmd) {
   try {
-    execFileSync('which', [cmd], { stdio: 'ignore' });
+    const checkCmd = process.platform === 'win32' ? 'where' : 'which';
+    execFileSync(checkCmd, [cmd], { stdio: 'ignore' });
     return true;
   } catch {
     return false;

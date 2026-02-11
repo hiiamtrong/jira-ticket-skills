@@ -20,11 +20,19 @@ function buildMcpServers(config) {
     jiraEnv.JIRA_PERSONAL_TOKEN = config.jiraToken;
   }
 
-  servers.jira = {
-    command: 'uvx',
-    args: ['mcp-atlassian'],
-    env: jiraEnv,
-  };
+  if (config.jiraRunner === 'uv') {
+    servers.jira = {
+      command: 'uv',
+      args: ['tool', 'run', 'mcp-atlassian'],
+      env: jiraEnv,
+    };
+  } else {
+    servers.jira = {
+      command: 'uvx',
+      args: ['mcp-atlassian'],
+      env: jiraEnv,
+    };
+  }
 
   // Figma HTTP MCP
   if (config.figma) {
@@ -59,13 +67,13 @@ export function installMcp(projectRoot, toolKey, config) {
   const newServers = buildMcpServers(config);
   const existingServers = existing[mcpKey] || {};
 
-  // Merge: skip servers that already exist
-  const skipped = [];
   const added = [];
+  const updated = [];
 
   for (const [name, serverConfig] of Object.entries(newServers)) {
     if (existingServers[name]) {
-      skipped.push(name);
+      existingServers[name] = serverConfig;
+      updated.push(name);
     } else {
       existingServers[name] = serverConfig;
       added.push(name);
@@ -79,8 +87,8 @@ export function installMcp(projectRoot, toolKey, config) {
   if (added.length) {
     log.success(`Added MCP servers to ${relPath}: ${added.join(', ')}`);
   }
-  if (skipped.length) {
-    log.warn(`Skipped existing MCP servers in ${relPath}: ${skipped.join(', ')}`);
+  if (updated.length) {
+    log.success(`Updated MCP servers in ${relPath}: ${updated.join(', ')}`);
   }
 
 }

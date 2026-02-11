@@ -31,7 +31,7 @@ export async function run(argv) {
  */
 async function runInstall(args) {
   // Prerequisites check
-  checkPrerequisites();
+  const jiraRunner = checkPrerequisites();
 
   // Collect configuration
   let config;
@@ -40,6 +40,7 @@ async function runInstall(args) {
   } else {
     config = await runPrompts(projectRoot, args);
   }
+  config.jiraRunner = jiraRunner;
 
   // Install for each selected tool
   log.step('Installing...');
