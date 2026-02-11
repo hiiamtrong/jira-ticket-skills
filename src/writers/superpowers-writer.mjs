@@ -1,21 +1,32 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import pc from 'picocolors';
 import { log, commandExists, fileExists, ensureDir } from '../utils.mjs';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const SUPERPOWERS_DIR = path.join(__dirname, '..', '..', 'templates', 'superpowers');
+
 /**
  * Install superpowers for a specific AI tool.
- * Each tool has a different installation method.
+ * - Claude Code: official plugin (full superpowers)
+ * - Cursor / Antigravity: copy only required skills from bundled templates
  */
 export async function installSuperpowers(projectRoot, toolKey) {
   switch (toolKey) {
     case 'claude':
       return installForClaude();
     case 'cursor':
-      return installForCursor();
+      return installFromTemplates(projectRoot, {
+        skillsDir: path.join(projectRoot, '.cursor', 'skills'),
+      });
     case 'antigravity':
-      return installForAntigravity(projectRoot);
+      return installFromTemplates(projectRoot, {
+        skillsDir: path.join(projectRoot, '.agent', 'skills'),
+        rulesDir: path.join(projectRoot, '.agent', 'rules'),
+        workflowsDir: path.join(projectRoot, '.agent', 'workflows'),
+      });
     default:
       log.warn(`Superpowers auto-install not supported for: ${toolKey}`);
   }
@@ -63,63 +74,51 @@ function installForClaude() {
 }
 
 /**
- * Cursor: npx prpm install collections/superpowers
+ * Copy bundled superpowers templates to project (Cursor & Antigravity).
+ * Only copies the 4 required skills, no unnecessary files.
  */
-function installForCursor() {
-  // Try prpm first (if globally installed)
-  if (commandExists('prpm')) {
-    try {
-      log.info('Installing superpowers for Cursor via prpm...');
-      execFileSync('prpm', ['install', 'collections/superpowers'], {
-        encoding: 'utf-8',
-        stdio: 'pipe',
-        timeout: 60000,
-      });
-      log.success('Superpowers installed (Cursor via prpm)');
-      return;
-    } catch {
-      // Fall through to openskills
+function installFromTemplates(projectRoot, { skillsDir, rulesDir, workflowsDir }) {
+  const srcSkills = path.join(SUPERPOWERS_DIR, 'skills');
+  let installed = 0;
+
+  // Copy skills
+  if (fileExists(srcSkills)) {
+    const skillFolders = fs.readdirSync(srcSkills, { withFileTypes: true })
+      .filter((d) => d.isDirectory());
+
+    for (const folder of skillFolders) {
+      const src = path.join(srcSkills, folder.name);
+      const dest = path.join(skillsDir, folder.name);
+      copyDirNoOverwrite(src, dest);
+      installed++;
+    }
+
+    if (installed > 0) {
+      log.success(`Installed ${installed} superpowers skills`);
     }
   }
 
-  // Try openskills
-  if (commandExists('openskills')) {
-    try {
-      log.info('Installing superpowers for Cursor via openskills...');
-      execFileSync(
-        'openskills',
-        ['install', 'obra/superpowers', '--universal', '--global'],
-        { encoding: 'utf-8', stdio: 'pipe', timeout: 60000 },
-      );
-      execFileSync('openskills', ['sync'], {
-        encoding: 'utf-8',
-        stdio: 'pipe',
-        timeout: 30000,
-      });
-      log.success('Superpowers installed (Cursor via openskills)');
-      return;
-    } catch {
-      // Fall through to manual instructions
+  // Copy rules (Antigravity only)
+  if (rulesDir) {
+    const srcRules = path.join(SUPERPOWERS_DIR, 'rules');
+    if (fileExists(srcRules)) {
+      copyDirNoOverwrite(srcRules, rulesDir);
+      log.success('Installed superpowers rules');
     }
   }
 
-  // Neither available — try npx prpm
-  try {
-    log.info('Installing superpowers for Cursor via npx prpm...');
-    execFileSync('npx', ['-y', 'prpm', 'install', 'collections/superpowers'], {
-      encoding: 'utf-8',
-      stdio: 'pipe',
-      timeout: 120000,
-    });
-    log.success('Superpowers installed (Cursor via npx prpm)');
-    return;
-  } catch {
-    // Fall through
+  // Copy workflows (Antigravity only)
+  if (workflowsDir) {
+    const srcWorkflows = path.join(SUPERPOWERS_DIR, 'workflows');
+    if (fileExists(srcWorkflows)) {
+      copyDirNoOverwrite(srcWorkflows, workflowsDir);
+      log.success('Installed superpowers workflows');
+    }
   }
 
-  log.warn('Could not auto-install superpowers for Cursor');
-  log.info(`  Option 1: ${pc.cyan('npm install -g prpm && prpm install collections/superpowers')}`);
-  log.info(`  Option 2: ${pc.cyan('bun add -g openskills && openskills install obra/superpowers --universal --global && openskills sync')}`);
+  if (installed === 0) {
+    log.warn('No superpowers templates found in package');
+  }
 }
 
 /**
@@ -142,86 +141,52 @@ function copyDirNoOverwrite(src, dest) {
 }
 
 /**
- * Antigravity: clone gemini-superpowers-antigravity and copy skills
+ * Uninstall superpowers for a specific tool.
  */
-function installForAntigravity(projectRoot) {
-  // Check if git is available
-  if (!commandExists('git')) {
-    log.warn('git not found. Install superpowers manually for Antigravity:');
-    log.info(
-      `  Clone: ${pc.cyan('https://github.com/anthonylee991/gemini-superpowers-antigravity')}`,
-    );
-    log.info(`  Copy skills into ${pc.cyan('.agent/skills/')}`);
-    return;
+export function uninstallSuperpowers(projectRoot, toolKey) {
+  const srcSkills = path.join(SUPERPOWERS_DIR, 'skills');
+  if (!fileExists(srcSkills)) return;
+
+  const skillNames = fs.readdirSync(srcSkills, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name);
+
+  let destBase;
+  switch (toolKey) {
+    case 'cursor':
+      destBase = path.join(projectRoot, '.cursor');
+      break;
+    case 'antigravity':
+      destBase = path.join(projectRoot, '.agent');
+      break;
+    default:
+      return; // Claude uses plugin system, no file cleanup needed
   }
 
-  // Clone to temp dir (clean up first in case of previous failed install)
-  const tempDir = path.join(projectRoot, '.agent', '.superpowers-tmp');
-  if (fileExists(tempDir)) {
-    fs.rmSync(tempDir, { recursive: true, force: true });
+  // Remove skill folders
+  for (const name of skillNames) {
+    const dir = path.join(destBase, 'skills', name);
+    if (fileExists(dir)) {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   }
 
-  try {
-    log.info('Cloning superpowers for Antigravity...');
-    execFileSync(
-      'git',
-      [
-        'clone',
-        '--depth=1',
-        'https://github.com/anthonylee991/gemini-superpowers-antigravity.git',
-        tempDir,
-      ],
-      { encoding: 'utf-8', stdio: 'pipe', timeout: 60000 },
-    );
+  // Remove rules (Antigravity)
+  if (toolKey === 'antigravity') {
+    const rulesFile = path.join(destBase, 'rules', 'superpowers.md');
+    if (fileExists(rulesFile)) fs.unlinkSync(rulesFile);
+  }
 
-    // Repo structure: .agent/skills/, .agent/rules/, .agent/workflows/
-    const agentSrc = path.join(tempDir, '.agent');
-    let copied = false;
-
-    // Copy skills
-    const srcSkills = path.join(agentSrc, 'skills');
-    const destSkills = path.join(projectRoot, '.agent', 'skills');
-    if (fileExists(srcSkills)) {
-      copyDirNoOverwrite(srcSkills, destSkills);
-      log.success('Superpowers skills copied to .agent/skills/');
-      copied = true;
-    }
-
-    // Copy rules
-    const srcRules = path.join(agentSrc, 'rules');
-    const destRules = path.join(projectRoot, '.agent', 'rules');
-    if (fileExists(srcRules)) {
-      copyDirNoOverwrite(srcRules, destRules);
-      log.success('Superpowers rules copied to .agent/rules/');
-      copied = true;
-    }
-
-    // Copy workflows
-    const srcWorkflows = path.join(agentSrc, 'workflows');
-    const destWorkflows = path.join(projectRoot, '.agent', 'workflows');
+  // Remove workflows (Antigravity)
+  if (toolKey === 'antigravity') {
+    const srcWorkflows = path.join(SUPERPOWERS_DIR, 'workflows');
     if (fileExists(srcWorkflows)) {
-      copyDirNoOverwrite(srcWorkflows, destWorkflows);
-      log.success('Superpowers workflows copied to .agent/workflows/');
-      copied = true;
+      for (const file of fs.readdirSync(srcWorkflows)) {
+        const dest = path.join(destBase, 'workflows', file);
+        if (fileExists(dest)) fs.unlinkSync(dest);
+      }
     }
-
-    if (!copied) {
-      log.warn('Cloned repo but no .agent/ directory found');
-    }
-
-    // Cleanup temp
-    fs.rmSync(tempDir, { recursive: true, force: true });
-  } catch (err) {
-    // Cleanup on failure
-    try {
-      fs.rmSync(tempDir, { recursive: true, force: true });
-    } catch {
-      // ignore cleanup errors
-    }
-    log.warn(`Could not auto-install superpowers for Antigravity: ${err.message}`);
-    log.info(
-      `  Clone: ${pc.cyan('https://github.com/anthonylee991/gemini-superpowers-antigravity')}`,
-    );
-    log.info(`  Copy skills into ${pc.cyan('.agent/skills/')}`);
   }
+
+  log.success(`Removed superpowers files for ${toolKey}`);
 }

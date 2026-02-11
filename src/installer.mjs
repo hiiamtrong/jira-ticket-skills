@@ -6,7 +6,7 @@ import { TOOL_CONFIGS, getSupportedTools } from './detect-tool.mjs';
 import { installSkill, uninstallSkill } from './writers/skill-writer.mjs';
 import { installMcp, uninstallMcp } from './writers/mcp-writer.mjs';
 import { installSettings, uninstallSettings } from './writers/settings-writer.mjs';
-import { installSuperpowers } from './writers/superpowers-writer.mjs';
+import { installSuperpowers, uninstallSuperpowers } from './writers/superpowers-writer.mjs';
 import { updateGitignore } from './writers/gitignore-writer.mjs';
 
 const projectRoot = process.cwd();
@@ -114,6 +114,7 @@ async function runUninstall(args) {
     uninstallSkill(projectRoot, toolKey);
     uninstallMcp(projectRoot, toolKey);
     uninstallSettings(projectRoot, toolKey);
+    uninstallSuperpowers(projectRoot, toolKey);
   }
 
   console.log('');
