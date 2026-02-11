@@ -1,0 +1,37 @@
+{
+  "name": "jira-ticket-skills",
+  "version": "1.0.0",
+  "description": "Install Jira ticket resolution skills for AI coding tools (Claude Code, Cursor, Antigravity)",
+  "bin": {
+    "jira-ticket-skills": "bin/cli.mjs"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "templates/",
+    "README.md"
+  ],
+  "keywords": [
+    "jira",
+    "claude-code",
+    "cursor",
+    "antigravity",
+    "ai-skills",
+    "mcp",
+    "figma"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "prompts": "^2.4.2",
+    "picocolors": "^1.1.1"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": ""
+}
