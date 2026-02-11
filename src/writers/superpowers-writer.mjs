@@ -153,8 +153,11 @@ function installForAntigravity(projectRoot) {
       { encoding: 'utf-8', stdio: 'pipe', timeout: 60000 },
     );
 
-    // Copy skills from cloned repo to .agent/skills/
-    const srcSkills = path.join(tempDir, 'skills');
+    // Repo structure: .agent/skills/, .agent/rules/, .agent/workflows/
+    const agentSrc = path.join(tempDir, '.agent');
+
+    // Copy skills
+    const srcSkills = path.join(agentSrc, 'skills');
     if (fileExists(srcSkills)) {
       execFileSync('cp', ['-rn', `${srcSkills}/.`, skillsDir], {
         encoding: 'utf-8',
@@ -163,8 +166,8 @@ function installForAntigravity(projectRoot) {
       log.success('Superpowers skills copied to .agent/skills/');
     }
 
-    // Also copy rules if they exist
-    const srcRules = path.join(tempDir, 'rules');
+    // Copy rules
+    const srcRules = path.join(agentSrc, 'rules');
     const destRules = path.join(projectRoot, '.agent', 'rules');
     if (fileExists(srcRules)) {
       execFileSync('cp', ['-rn', `${srcRules}/.`, destRules], {
@@ -172,6 +175,17 @@ function installForAntigravity(projectRoot) {
         stdio: 'pipe',
       });
       log.success('Superpowers rules copied to .agent/rules/');
+    }
+
+    // Copy workflows
+    const srcWorkflows = path.join(agentSrc, 'workflows');
+    const destWorkflows = path.join(projectRoot, '.agent', 'workflows');
+    if (fileExists(srcWorkflows)) {
+      execFileSync('cp', ['-rn', `${srcWorkflows}/.`, destWorkflows], {
+        encoding: 'utf-8',
+        stdio: 'pipe',
+      });
+      log.success('Superpowers workflows copied to .agent/workflows/');
     }
 
     // Cleanup temp

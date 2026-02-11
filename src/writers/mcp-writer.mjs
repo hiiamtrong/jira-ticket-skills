@@ -83,12 +83,6 @@ export function installMcp(projectRoot, toolKey, config) {
     log.warn(`Skipped existing MCP servers in ${relPath}: ${skipped.join(', ')}`);
   }
 
-  // Security warning
-  if (config.jiraToken) {
-    log.warn(
-      `${relPath} contains credentials. Consider adding it to .gitignore`,
-    );
-  }
 }
 
 /**

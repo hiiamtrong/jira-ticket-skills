@@ -29,6 +29,8 @@ export const TOOL_CONFIGS = {
     skillDir: (root) =>
       path.join(root, '.agent', 'skills', 'resolve-jira-ticket'),
     skillFile: 'SKILL.md',
+    workflowDir: (root) => path.join(root, '.agent', 'workflows'),
+    workflowFile: 'resolve-jira-ticket.md',
     mcpConfig: (root) => path.join(root, '.agent', 'mcp.json'),
     mcpKey: 'mcpServers',
     settingsFile: (root) => path.join(root, '.agent', 'settings.json'),

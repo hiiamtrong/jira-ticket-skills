@@ -1,1 +1,5 @@
 node_modules
+
+# jira-ticket-skills (MCP credentials)
+.mcp.json
+.claude/settings.json

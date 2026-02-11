@@ -7,6 +7,7 @@ import { installSkill, uninstallSkill } from './writers/skill-writer.mjs';
 import { installMcp, uninstallMcp } from './writers/mcp-writer.mjs';
 import { installSettings, uninstallSettings } from './writers/settings-writer.mjs';
 import { installSuperpowers } from './writers/superpowers-writer.mjs';
+import { updateGitignore } from './writers/gitignore-writer.mjs';
 
 const projectRoot = process.cwd();
 
@@ -51,6 +52,10 @@ async function runInstall(args) {
     installMcp(projectRoot, toolKey, config);
     installSettings(projectRoot, toolKey, config);
   }
+
+  // Update .gitignore
+  log.step('Securing credentials...');
+  updateGitignore(projectRoot, config.tools);
 
   // Install superpowers
   log.step('Installing Superpowers...');
