@@ -100,21 +100,10 @@ export async function runPrompts(projectRoot, cliArgs) {
         type: 'confirm',
         name: 'value',
         message:
-          'Also install Figma Bridge (connects to Figma desktop app)?',
-        initial: false,
+          'Also install Figma Bridge (connects to Figma desktop app for live design context)?',
+        initial: true,
       });
       config.figmaBridge = figmaBridge.value ?? false;
-
-      if (config.figmaBridge) {
-        const bridgePath = await prompts({
-          type: 'text',
-          name: 'value',
-          message: 'Path to figma-mcp-bridge server (index.js)',
-          validate: (v) => (v.trim() ? true : 'Path is required'),
-        });
-        if (bridgePath.value === undefined) throw new Error('Cancelled');
-        config.figmaBridgePath = bridgePath.value.trim();
-      }
     }
   } else {
     config.figma = false;
@@ -197,7 +186,7 @@ export function runNonInteractive(cliArgs) {
     jiraAuthMethod: 'personal_token',
     projectKey: projectKey.toUpperCase(),
     figma: !cliArgs.noFigma,
-    figmaBridge: false,
+    figmaBridge: !cliArgs.noFigma,
   };
 }
 

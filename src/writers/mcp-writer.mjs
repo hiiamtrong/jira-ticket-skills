@@ -34,11 +34,11 @@ function buildMcpServers(config) {
     };
   }
 
-  // Figma Bridge (local node server)
-  if (config.figmaBridge && config.figmaBridgePath) {
+  // Figma Bridge (via npx @gethopp/figma-mcp-bridge)
+  if (config.figmaBridge) {
     servers['figma-bridge'] = {
-      command: 'node',
-      args: [config.figmaBridgePath],
+      command: 'npx',
+      args: ['-y', '@gethopp/figma-mcp-bridge'],
     };
   }
 
