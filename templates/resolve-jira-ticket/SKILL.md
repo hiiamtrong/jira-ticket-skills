@@ -50,7 +50,21 @@ Gather ALL context via Jira MCP tools:
    - Cross-references to related code or PRs
    **YOU MUST read all comments before proceeding. Do NOT skip this step even if the description seems sufficient.**
 3. **Linked issues** - related bugs, parent stories, blockers. Read their descriptions and comments too for additional context.
-4. **Figma link detection (CRITICAL)** - Scan ALL of the following for Figma URLs:
+4. **Confluence link detection** - Scan ALL of the following for Confluence URLs:
+   - Ticket description
+   - ALL comments
+   - Remote links (already fetched via `jira_get_issue` with `fields: '*all'`)
+
+   **Confluence URL patterns to detect:**
+   - `*.atlassian.net/wiki/...`
+   - `confluence.*/pages/...`
+   - `confluence.*/display/...`
+
+   Collect all unique Confluence links with context about where each was found.
+
+   **If Confluence links found: INVOKE `read-confluence-docs`** with each URL before proceeding to Phase 3. Add the fetched documentation to the Ticket Brief as "Documentation context".
+
+5. **Figma link detection (CRITICAL)** - Scan ALL of the following for Figma URLs:
    - Ticket description
    - ALL comments
    - Remote links (use `jira_get_issue` with `fields: '*all'` to capture remote links)
@@ -79,6 +93,7 @@ Gather ALL context via Jira MCP tools:
 **Team notes:** Key insights extracted from ALL comments (summarize each commenter's input)
 **Previous attempts:** Workarounds or fixes already tried (from comments)
 **Related tickets:** Linked issues and their key context
+**Documentation context:** [Confluence pages fetched and their key content summaries]
 **Design references:** [List of Figma links found, with source context]
 ```
 
@@ -252,6 +267,7 @@ Follow the four debugging phases strictly:
 | ----------------- | ----------------------------------- | -------------------------------- |
 | 1. Select         | Fetch tickets, user picks           | Jira MCP                        |
 | 2. Analyze        | Read ticket details/comments/links  | Jira MCP                        |
+| 2.4 Confluence    | Read linked Confluence docs         | read-confluence-docs             |
 | 2.5 Design        | Extract Figma specs + ASCII UI draft | Figma MCP (get_node, get_screenshot, get_design_context, get_variable_defs, get_metadata, get_document) |
 | 3. Map            | Find relevant code paths            | Grep, Read, git log             |
 | 4. Understand     | Feature/bug design context          | brainstorming                    |
@@ -262,6 +278,7 @@ Follow the four debugging phases strictly:
 
 - Proposing a fix before completing Phase 3
 - Skipping comments or linked issues in Phase 2
+- **Skipping Confluence doc reading when Confluence links are present in the ticket**
 - **Skipping Figma design analysis when Figma links are present in the ticket**
 - **Not creating an ASCII UI draft when Figma links are present**
 - Not invoking systematic-debugging for the fix

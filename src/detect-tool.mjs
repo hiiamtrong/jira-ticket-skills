@@ -11,6 +11,9 @@ export const TOOL_CONFIGS = {
     skillDir: (root) =>
       path.join(root, '.claude', 'skills', 'resolve-jira-ticket'),
     skillFile: 'SKILL.md',
+    confluenceSkillDir: (root) =>
+      path.join(root, '.claude', 'skills', 'read-confluence-docs'),
+    confluenceSkillFile: 'SKILL.md',
     mcpConfig: (root) => path.join(root, '.mcp.json'),
     mcpKey: 'mcpServers',
     settingsFile: (root) => path.join(root, '.claude', 'settings.json'),
@@ -20,6 +23,9 @@ export const TOOL_CONFIGS = {
     label: 'Cursor',
     skillDir: (root) => path.join(root, '.cursor', 'skills', 'resolve-jira-ticket'),
     skillFile: 'SKILL.md',
+    confluenceSkillDir: (root) =>
+      path.join(root, '.cursor', 'skills', 'read-confluence-docs'),
+    confluenceSkillFile: 'SKILL.md',
     mcpConfig: (root) => path.join(root, '.cursor', 'mcp.json'),
     mcpKey: 'mcpServers',
     settingsType: 'rules',
@@ -31,6 +37,9 @@ export const TOOL_CONFIGS = {
     skillDir: (root) =>
       path.join(root, '.agent', 'skills', 'resolve-jira-ticket'),
     skillFile: 'SKILL.md',
+    confluenceSkillDir: (root) =>
+      path.join(root, '.agent', 'skills', 'read-confluence-docs'),
+    confluenceSkillFile: 'SKILL.md',
     workflowDir: (root) => path.join(root, '.agent', 'workflows'),
     workflowFile: 'resolve-jira-ticket.md',
     // Antigravity IDE uses global config at ~/.gemini/antigravity/mcp_config.json

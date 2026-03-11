@@ -43,6 +43,34 @@ function buildMcpServers(config) {
     };
   }
 
+  // Confluence MCP (mcp-atlassian via uvx)
+  if (config.confluenceEnabled) {
+    const confluenceEnv = {
+      CONFLUENCE_URL: config.confluenceUrl,
+    };
+
+    if (config.confluenceAuthMethod === 'api_token') {
+      confluenceEnv.CONFLUENCE_API_TOKEN = config.confluenceToken;
+      confluenceEnv.CONFLUENCE_USERNAME = config.confluenceEmail;
+    } else {
+      confluenceEnv.CONFLUENCE_PERSONAL_TOKEN = config.confluenceToken;
+    }
+
+    if (config.jiraRunner === 'uv') {
+      servers.confluence = {
+        command: 'uv',
+        args: ['tool', 'run', 'mcp-atlassian'],
+        env: confluenceEnv,
+      };
+    } else {
+      servers.confluence = {
+        command: 'uvx',
+        args: ['mcp-atlassian'],
+        env: confluenceEnv,
+      };
+    }
+  }
+
   return servers;
 }
 
@@ -114,7 +142,7 @@ export function uninstallMcp(projectRoot, toolKey) {
     return;
   }
 
-  const serversToRemove = ['jira', 'figma-bridge'];
+  const serversToRemove = ['jira', 'figma-bridge', 'confluence'];
   const removed = [];
 
   for (const name of serversToRemove) {

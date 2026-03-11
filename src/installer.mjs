@@ -3,7 +3,7 @@ import pc from 'picocolors';
 import { parseArgs, printBanner, log, commandExists } from './utils.mjs';
 import { runPrompts, runNonInteractive, checkPrerequisites } from './prompts.mjs';
 import { TOOL_CONFIGS, getSupportedTools } from './detect-tool.mjs';
-import { installSkill, uninstallSkill } from './writers/skill-writer.mjs';
+import { installSkill, uninstallSkill, installConfluenceSkill, uninstallConfluenceSkill } from './writers/skill-writer.mjs';
 import { installMcp, uninstallMcp } from './writers/mcp-writer.mjs';
 import { installSettings, uninstallSettings } from './writers/settings-writer.mjs';
 import { installSuperpowers, uninstallSuperpowers } from './writers/superpowers-writer.mjs';
@@ -50,6 +50,9 @@ async function runInstall(args) {
     console.log(`\n  ${pc.dim('─')} ${pc.bold(label)}`);
 
     installSkill(projectRoot, toolKey);
+    if (config.confluenceEnabled) {
+      installConfluenceSkill(projectRoot, toolKey);
+    }
     installMcp(projectRoot, toolKey, config);
     installSettings(projectRoot, toolKey, config);
   }
@@ -113,6 +116,7 @@ async function runUninstall(args) {
     console.log(`\n  ${pc.dim('─')} ${pc.bold(label)}`);
 
     uninstallSkill(projectRoot, toolKey);
+    uninstallConfluenceSkill(projectRoot, toolKey);
     uninstallMcp(projectRoot, toolKey);
     uninstallSettings(projectRoot, toolKey);
     uninstallSuperpowers(projectRoot, toolKey);
@@ -138,4 +142,10 @@ function printUsageGuide(config) {
   console.log(
     `    ${pc.cyan(`/resolve-jira-ticket ${config.projectKey}-123`)}  ${pc.dim('Work on a specific ticket')}`,
   );
+  if (config.confluenceEnabled) {
+    console.log('');
+    console.log(
+      `    ${pc.cyan('/read-confluence-docs')}           ${pc.dim('Search or fetch Confluence pages')}`,
+    );
+  }
 }

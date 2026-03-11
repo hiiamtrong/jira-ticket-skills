@@ -87,7 +87,84 @@ export async function runPrompts(projectRoot, cliArgs) {
   if (projectKey.value === undefined) throw new Error('Cancelled');
   config.projectKey = projectKey.value;
 
-  // ── 3. Figma configuration ───────────────────────────────────────────
+  // ── 3. Confluence configuration ──────────────────────────────────────
+  log.step('Confluence Integration');
+
+  const confluenceEnable = await prompts({
+    type: 'confirm',
+    name: 'value',
+    message: 'Add Confluence integration (read docs from your AI tool)?',
+    initial: true,
+  });
+  config.confluenceEnabled = confluenceEnable.value ?? false;
+
+  if (config.confluenceEnabled) {
+    const defaultConfluenceUrl = config.jiraUrl
+      ? config.jiraUrl.replace(/\/$/, '') + '/wiki'
+      : '';
+
+    const confluenceUrl = await prompts({
+      type: 'text',
+      name: 'value',
+      message: 'Confluence URL',
+      initial: defaultConfluenceUrl,
+      format: (v) => v.trim(),
+      validate: (v) => {
+        if (!v.trim()) return 'URL is required';
+        try {
+          new URL(v.startsWith('http') ? v : `https://${v}`);
+          return true;
+        } catch {
+          return 'Invalid URL';
+        }
+      },
+    });
+    if (confluenceUrl.value === undefined) throw new Error('Cancelled');
+    config.confluenceUrl = confluenceUrl.value.startsWith('http')
+      ? confluenceUrl.value
+      : `https://${confluenceUrl.value}`;
+
+    const confluenceAuth = await prompts({
+      type: 'select',
+      name: 'value',
+      message: 'Confluence authentication method',
+      choices: [
+        { title: 'Personal Token (Server/DC)', value: 'personal_token' },
+        { title: 'API Token + Email (Cloud)', value: 'api_token' },
+      ],
+    });
+    if (confluenceAuth.value === undefined) throw new Error('Cancelled');
+    config.confluenceAuthMethod = confluenceAuth.value;
+
+    if (config.confluenceAuthMethod === 'api_token') {
+      const defaultEmail = config.jiraEmail || '';
+      const confluenceEmail = await prompts({
+        type: 'text',
+        name: 'value',
+        message: 'Confluence account email',
+        initial: defaultEmail,
+        format: (v) => v.trim(),
+        validate: (v) => (v.trim().includes('@') ? true : 'Valid email required'),
+      });
+      if (confluenceEmail.value === undefined) throw new Error('Cancelled');
+      config.confluenceEmail = confluenceEmail.value;
+    }
+
+    const confluenceToken = await prompts({
+      type: 'password',
+      name: 'value',
+      message:
+        config.confluenceAuthMethod === 'personal_token'
+          ? 'Confluence Personal Token'
+          : 'Confluence API Token',
+      format: (v) => v.trim(),
+      validate: (v) => (v.trim() ? true : 'Token is required'),
+    });
+    if (confluenceToken.value === undefined) throw new Error('Cancelled');
+    config.confluenceToken = confluenceToken.value;
+  }
+
+  // ── 4. Figma configuration ───────────────────────────────────────────
   if (!cliArgs.noFigma) {
     log.step('Figma Integration');
 
@@ -159,6 +236,11 @@ export function runNonInteractive(cliArgs) {
   if (!projectKey)
     throw new Error('JIRA_PROJECT_KEY env var is required in --yes mode');
 
+  const confluenceUrl = process.env.CONFLUENCE_URL?.trim();
+  const confluenceToken = process.env.CONFLUENCE_TOKEN?.trim();
+  const confluenceEmail = process.env.CONFLUENCE_EMAIL?.trim();
+  const confluenceEnabled = Boolean(confluenceUrl && confluenceToken);
+
   return {
     tools: [tool],
     jiraUrl: jiraUrl.startsWith('http') ? jiraUrl : `https://${jiraUrl}`,
@@ -166,6 +248,13 @@ export function runNonInteractive(cliArgs) {
     jiraAuthMethod: 'personal_token',
     projectKey: projectKey.toUpperCase(),
     figmaBridge: !cliArgs.noFigma,
+    confluenceEnabled,
+    ...(confluenceEnabled && {
+      confluenceUrl: confluenceUrl.startsWith('http') ? confluenceUrl : `https://${confluenceUrl}`,
+      confluenceToken,
+      confluenceAuthMethod: confluenceEmail ? 'api_token' : 'personal_token',
+      ...(confluenceEmail && { confluenceEmail }),
+    }),
   };
 }
 
