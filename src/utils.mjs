@@ -1,7 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import pc from 'picocolors';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const { version } = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
 
 // ── Logger ──────────────────────────────────────────────────────────────────
 
@@ -138,7 +142,7 @@ export function commandExists(cmd) {
 export function printBanner() {
   console.log('');
   console.log(
-    `  ${pc.bold(pc.cyan('jira-ticket-skills'))} ${pc.dim('v1.0.0')}`,
+    `  ${pc.bold(pc.cyan('jira-ticket-skills'))} ${pc.dim(`v${version}`)}`,
   );
   console.log(
     `  ${pc.dim('Install Jira ticket resolution skills for AI coding tools')}`,
