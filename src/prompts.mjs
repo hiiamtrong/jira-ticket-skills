@@ -2,6 +2,7 @@ import prompts from 'prompts';
 import pc from 'picocolors';
 import { TOOL_CONFIGS, getSupportedTools } from './detect-tool.mjs';
 import { log, commandExists } from './utils.mjs';
+import { readExistingConfig } from './writers/settings-writer.mjs';
 
 /**
  * Run all interactive prompts. Returns collected config.
@@ -12,6 +13,9 @@ export async function runPrompts(projectRoot, cliArgs) {
   // ── 1. Detect / select AI tool ────────────────────────────────────────
   config.tools = await promptTools(projectRoot, cliArgs);
 
+  // Read previously installed config from the first selected tool to pre-fill prompts.
+  const existing = readExistingConfig(projectRoot, config.tools[0]);
+
   // ── 2. Jira configuration ────────────────────────────────────────────
   log.step('Jira Configuration');
 
@@ -19,7 +23,7 @@ export async function runPrompts(projectRoot, cliArgs) {
     type: 'text',
     name: 'value',
     message: 'Jira instance URL',
-    initial: process.env.JIRA_URL || '',
+    initial: process.env.JIRA_URL || existing.jiraUrl || '',
     format: (v) => v.trim(),
     validate: (v) => {
       if (!v.trim()) return 'URL is required';
@@ -53,6 +57,7 @@ export async function runPrompts(projectRoot, cliArgs) {
       type: 'text',
       name: 'value',
       message: 'Jira account email',
+      initial: existing.jiraEmail || '',
       format: (v) => v.trim(),
       validate: (v) => (v.trim().includes('@') ? true : 'Valid email required'),
     });
@@ -77,7 +82,7 @@ export async function runPrompts(projectRoot, cliArgs) {
     type: 'text',
     name: 'value',
     message: 'Default Jira project key (e.g. PRJ)',
-    initial: process.env.JIRA_PROJECT_KEY || '',
+    initial: process.env.JIRA_PROJECT_KEY || existing.projectKey || '',
     format: (v) => v.trim().toUpperCase(),
     validate: (v) =>
       /^[A-Z][A-Z0-9]{1,9}$/.test(v.trim().toUpperCase())
@@ -94,14 +99,13 @@ export async function runPrompts(projectRoot, cliArgs) {
     type: 'confirm',
     name: 'value',
     message: 'Add Confluence integration (read docs from your AI tool)?',
-    initial: true,
+    initial: existing.confluenceEnabled ?? true,
   });
   config.confluenceEnabled = confluenceEnable.value ?? false;
 
   if (config.confluenceEnabled) {
-    const defaultConfluenceUrl = config.jiraUrl
-      ? config.jiraUrl.replace(/\/$/, '') + '/wiki'
-      : '';
+    const defaultConfluenceUrl = existing.confluenceUrl
+      || (config.jiraUrl ? config.jiraUrl.replace(/\/$/, '') + '/wiki' : '');
 
     const confluenceUrl = await prompts({
       type: 'text',
@@ -137,7 +141,7 @@ export async function runPrompts(projectRoot, cliArgs) {
     config.confluenceAuthMethod = confluenceAuth.value;
 
     if (config.confluenceAuthMethod === 'api_token') {
-      const defaultEmail = config.jiraEmail || '';
+      const defaultEmail = existing.confluenceEmail || config.jiraEmail || '';
       const confluenceEmail = await prompts({
         type: 'text',
         name: 'value',
@@ -171,7 +175,7 @@ export async function runPrompts(projectRoot, cliArgs) {
     type: 'confirm',
     name: 'value',
     message: 'Add Trello integration (resolve Trello cards from your AI tool)?',
-    initial: false,
+    initial: existing.trelloEnabled ?? false,
   });
   config.trelloEnabled = trelloEnable.value ?? false;
 
@@ -201,7 +205,7 @@ export async function runPrompts(projectRoot, cliArgs) {
       type: 'text',
       name: 'value',
       message: 'Default Trello board ID',
-      initial: process.env.TRELLO_BOARD_ID || '',
+      initial: process.env.TRELLO_BOARD_ID || existing.trelloBoardId || '',
       format: (v) => v.trim(),
       validate: (v) => (v.trim() ? true : 'Board ID is required'),
     });

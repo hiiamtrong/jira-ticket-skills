@@ -1,6 +1,93 @@
 import path from 'node:path';
-import { readJson, writeJson, writeFile, removeFile, log } from '../utils.mjs';
+import { readJson, readFile, writeJson, writeFile, removeFile, log } from '../utils.mjs';
 import { getToolConfig } from '../detect-tool.mjs';
+
+/**
+ * Read previously installed config for a tool so prompts can pre-fill values.
+ * Tokens/passwords are never returned (security).
+ * Returns an object with any subset of: projectKey, jiraUrl, jiraAuthMethod,
+ * jiraEmail, confluenceEnabled, confluenceUrl, confluenceAuthMethod,
+ * trelloEnabled, trelloBoardId.
+ */
+export function readExistingConfig(projectRoot, toolKey) {
+  const toolConfig = getToolConfig(toolKey);
+  if (!toolConfig) return {};
+
+  const result = {};
+
+  if (toolConfig.settingsType === 'rules') {
+    _readFromRulesFile(toolConfig.settingsFile(projectRoot), result);
+  } else {
+    _readFromJsonSettings(toolConfig, projectRoot, result);
+  }
+
+  _readFromMcpConfig(toolConfig.mcpConfig(projectRoot), toolConfig.mcpKey, result);
+
+  return result;
+}
+
+function _readFromJsonSettings(toolConfig, projectRoot, result) {
+  const settings = readJson(toolConfig.settingsFile(projectRoot));
+  if (!settings) return;
+
+  let env = settings;
+  for (const key of toolConfig.settingsEnvPath) {
+    env = env?.[key];
+  }
+  if (!env) return;
+
+  if (env.JIRA_PROJECT_KEY) result.projectKey = env.JIRA_PROJECT_KEY;
+  if (env.TRELLO_BOARD_ID) result.trelloBoardId = env.TRELLO_BOARD_ID;
+}
+
+function _readFromRulesFile(rulesPath, result) {
+  const content = readFile(rulesPath);
+  if (!content) return;
+
+  const projectKeyMatch = content.match(/\*\*JIRA_PROJECT_KEY\*\*[^`]*`([^`]+)`/);
+  if (projectKeyMatch) result.projectKey = projectKeyMatch[1];
+
+  const trelloBoardMatch = content.match(/\*\*TRELLO_BOARD_ID\*\*[^`]*`([^`]+)`/);
+  if (trelloBoardMatch) {
+    result.trelloBoardId = trelloBoardMatch[1];
+    result.trelloEnabled = true;
+  }
+}
+
+function _readFromMcpConfig(mcpPath, mcpKey, result) {
+  const mcp = readJson(mcpPath);
+  if (!mcp) return;
+
+  const servers = mcp[mcpKey];
+  if (!servers) return;
+
+  const jira = servers.jira?.env;
+  if (jira) {
+    if (jira.JIRA_URL) result.jiraUrl = jira.JIRA_URL;
+    if (jira.JIRA_API_TOKEN) {
+      result.jiraAuthMethod = 'api_token';
+      if (jira.JIRA_USERNAME) result.jiraEmail = jira.JIRA_USERNAME;
+    } else if (jira.JIRA_PERSONAL_TOKEN) {
+      result.jiraAuthMethod = 'personal_token';
+    }
+  }
+
+  const confluence = servers.confluence?.env;
+  if (confluence) {
+    result.confluenceEnabled = true;
+    if (confluence.CONFLUENCE_URL) result.confluenceUrl = confluence.CONFLUENCE_URL;
+    if (confluence.CONFLUENCE_API_TOKEN) {
+      result.confluenceAuthMethod = 'api_token';
+      if (confluence.CONFLUENCE_USERNAME) result.confluenceEmail = confluence.CONFLUENCE_USERNAME;
+    } else if (confluence.CONFLUENCE_PERSONAL_TOKEN) {
+      result.confluenceAuthMethod = 'personal_token';
+    }
+  }
+
+  if (servers.trello) {
+    result.trelloEnabled = true;
+  }
+}
 
 /**
  * Install settings (env vars) for a specific tool.
