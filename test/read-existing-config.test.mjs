@@ -149,3 +149,66 @@ test('readExistingConfig cursor: returns empty object when rules file missing', 
   const config = readExistingConfig(root, 'cursor');
   assert.deepEqual(config, {});
 });
+
+// ── token reading from MCP config ─────────────────────────────────────────────
+
+test('readExistingConfig claude: reads jiraToken (personal_token) from .mcp.json', () => {
+  const root = makeTmpDir();
+  writeJson(path.join(root, '.mcp.json'), {
+    mcpServers: {
+      jira: {
+        command: 'uvx',
+        args: ['mcp-atlassian'],
+        env: { JIRA_URL: 'https://jira.example.com', JIRA_PERSONAL_TOKEN: 'my-secret-token' },
+      },
+    },
+  });
+  const config = readExistingConfig(root, 'claude');
+  assert.equal(config.jiraToken, 'my-secret-token');
+});
+
+test('readExistingConfig claude: reads jiraToken (api_token) from .mcp.json', () => {
+  const root = makeTmpDir();
+  writeJson(path.join(root, '.mcp.json'), {
+    mcpServers: {
+      jira: {
+        command: 'uvx',
+        args: ['mcp-atlassian'],
+        env: { JIRA_URL: 'https://jira.example.com', JIRA_API_TOKEN: 'api-tok', JIRA_USERNAME: 'u@e.com' },
+      },
+    },
+  });
+  const config = readExistingConfig(root, 'claude');
+  assert.equal(config.jiraToken, 'api-tok');
+});
+
+test('readExistingConfig claude: reads confluenceToken from .mcp.json', () => {
+  const root = makeTmpDir();
+  writeJson(path.join(root, '.mcp.json'), {
+    mcpServers: {
+      confluence: {
+        command: 'uvx',
+        args: ['mcp-atlassian'],
+        env: { CONFLUENCE_URL: 'https://conf.example.com', CONFLUENCE_PERSONAL_TOKEN: 'ctok' },
+      },
+    },
+  });
+  const config = readExistingConfig(root, 'claude');
+  assert.equal(config.confluenceToken, 'ctok');
+});
+
+test('readExistingConfig claude: reads trelloApiKey and trelloToken from .mcp.json', () => {
+  const root = makeTmpDir();
+  writeJson(path.join(root, '.mcp.json'), {
+    mcpServers: {
+      trello: {
+        command: 'bunx',
+        args: ['@delorenj/mcp-server-trello'],
+        env: { TRELLO_API_KEY: 'my-key', TRELLO_TOKEN: 'my-tok' },
+      },
+    },
+  });
+  const config = readExistingConfig(root, 'claude');
+  assert.equal(config.trelloApiKey, 'my-key');
+  assert.equal(config.trelloToken, 'my-tok');
+});

@@ -4,10 +4,10 @@ import { getToolConfig } from '../detect-tool.mjs';
 
 /**
  * Read previously installed config for a tool so prompts can pre-fill values.
- * Tokens/passwords are never returned (security).
+ * Tokens are included so the installer can offer "leave blank to keep existing".
  * Returns an object with any subset of: projectKey, jiraUrl, jiraAuthMethod,
- * jiraEmail, confluenceEnabled, confluenceUrl, confluenceAuthMethod,
- * trelloEnabled, trelloBoardId.
+ * jiraEmail, jiraToken, confluenceEnabled, confluenceUrl, confluenceAuthMethod,
+ * confluenceEmail, confluenceToken, trelloEnabled, trelloBoardId, trelloApiKey, trelloToken.
  */
 export function readExistingConfig(projectRoot, toolKey) {
   const toolConfig = getToolConfig(toolKey);
@@ -66,9 +66,11 @@ function _readFromMcpConfig(mcpPath, mcpKey, result) {
     if (jira.JIRA_URL) result.jiraUrl = jira.JIRA_URL;
     if (jira.JIRA_API_TOKEN) {
       result.jiraAuthMethod = 'api_token';
+      result.jiraToken = jira.JIRA_API_TOKEN;
       if (jira.JIRA_USERNAME) result.jiraEmail = jira.JIRA_USERNAME;
     } else if (jira.JIRA_PERSONAL_TOKEN) {
       result.jiraAuthMethod = 'personal_token';
+      result.jiraToken = jira.JIRA_PERSONAL_TOKEN;
     }
   }
 
@@ -78,14 +80,18 @@ function _readFromMcpConfig(mcpPath, mcpKey, result) {
     if (confluence.CONFLUENCE_URL) result.confluenceUrl = confluence.CONFLUENCE_URL;
     if (confluence.CONFLUENCE_API_TOKEN) {
       result.confluenceAuthMethod = 'api_token';
+      result.confluenceToken = confluence.CONFLUENCE_API_TOKEN;
       if (confluence.CONFLUENCE_USERNAME) result.confluenceEmail = confluence.CONFLUENCE_USERNAME;
     } else if (confluence.CONFLUENCE_PERSONAL_TOKEN) {
       result.confluenceAuthMethod = 'personal_token';
+      result.confluenceToken = confluence.CONFLUENCE_PERSONAL_TOKEN;
     }
   }
 
   if (servers.trello) {
     result.trelloEnabled = true;
+    if (servers.trello.env?.TRELLO_API_KEY) result.trelloApiKey = servers.trello.env.TRELLO_API_KEY;
+    if (servers.trello.env?.TRELLO_TOKEN) result.trelloToken = servers.trello.env.TRELLO_TOKEN;
   }
 }
 

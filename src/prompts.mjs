@@ -65,18 +65,16 @@ export async function runPrompts(projectRoot, cliArgs) {
     config.jiraEmail = email.value;
   }
 
+  const jiraTokenLabel = config.jiraAuthMethod === 'personal_token' ? 'Jira Personal Token' : 'Jira API Token';
   const jiraToken = await prompts({
     type: 'password',
     name: 'value',
-    message:
-      config.jiraAuthMethod === 'personal_token'
-        ? 'Jira Personal Token'
-        : 'Jira API Token',
+    message: existing.jiraToken ? `${jiraTokenLabel} (leave blank to keep existing)` : jiraTokenLabel,
     format: (v) => v.trim(),
-    validate: (v) => (v.trim() ? true : 'Token is required'),
+    validate: (v) => (v.trim() || existing.jiraToken ? true : 'Token is required'),
   });
   if (jiraToken.value === undefined) throw new Error('Cancelled');
-  config.jiraToken = jiraToken.value;
+  config.jiraToken = jiraToken.value || existing.jiraToken;
 
   const projectKey = await prompts({
     type: 'text',
@@ -154,18 +152,16 @@ export async function runPrompts(projectRoot, cliArgs) {
       config.confluenceEmail = confluenceEmail.value;
     }
 
+    const confTokenLabel = config.confluenceAuthMethod === 'personal_token' ? 'Confluence Personal Token' : 'Confluence API Token';
     const confluenceToken = await prompts({
       type: 'password',
       name: 'value',
-      message:
-        config.confluenceAuthMethod === 'personal_token'
-          ? 'Confluence Personal Token'
-          : 'Confluence API Token',
+      message: existing.confluenceToken ? `${confTokenLabel} (leave blank to keep existing)` : confTokenLabel,
       format: (v) => v.trim(),
-      validate: (v) => (v.trim() ? true : 'Token is required'),
+      validate: (v) => (v.trim() || existing.confluenceToken ? true : 'Token is required'),
     });
     if (confluenceToken.value === undefined) throw new Error('Cancelled');
-    config.confluenceToken = confluenceToken.value;
+    config.confluenceToken = confluenceToken.value || existing.confluenceToken;
   }
 
   // ── 4b. Trello configuration ─────────────────────────────────────────
@@ -183,23 +179,23 @@ export async function runPrompts(projectRoot, cliArgs) {
     const apiKey = await prompts({
       type: 'text',
       name: 'value',
-      message: 'Trello API key (https://trello.com/app-key)',
+      message: existing.trelloApiKey ? 'Trello API key (leave blank to keep existing)' : 'Trello API key (https://trello.com/app-key)',
       initial: process.env.TRELLO_API_KEY || '',
       format: (v) => v.trim(),
-      validate: (v) => (v.trim() ? true : 'API key is required'),
+      validate: (v) => (v.trim() || existing.trelloApiKey ? true : 'API key is required'),
     });
     if (apiKey.value === undefined) throw new Error('Cancelled');
-    config.trelloApiKey = apiKey.value;
+    config.trelloApiKey = apiKey.value || existing.trelloApiKey;
 
     const token = await prompts({
       type: 'password',
       name: 'value',
-      message: 'Trello token',
+      message: existing.trelloToken ? 'Trello token (leave blank to keep existing)' : 'Trello token',
       format: (v) => v.trim(),
-      validate: (v) => (v.trim() ? true : 'Token is required'),
+      validate: (v) => (v.trim() || existing.trelloToken ? true : 'Token is required'),
     });
     if (token.value === undefined) throw new Error('Cancelled');
-    config.trelloToken = token.value;
+    config.trelloToken = token.value || existing.trelloToken;
 
     const boardId = await prompts({
       type: 'text',
