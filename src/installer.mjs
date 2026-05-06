@@ -3,7 +3,14 @@ import pc from 'picocolors';
 import { parseArgs, printBanner, log, commandExists } from './utils.mjs';
 import { runPrompts, runNonInteractive, checkPrerequisites } from './prompts.mjs';
 import { TOOL_CONFIGS, getSupportedTools } from './detect-tool.mjs';
-import { installSkill, uninstallSkill, installConfluenceSkill, uninstallConfluenceSkill } from './writers/skill-writer.mjs';
+import {
+  installSkill,
+  uninstallSkill,
+  installConfluenceSkill,
+  uninstallConfluenceSkill,
+  installTrelloSkill,
+  uninstallTrelloSkill,
+} from './writers/skill-writer.mjs';
 import { installMcp, uninstallMcp } from './writers/mcp-writer.mjs';
 import { installSettings, uninstallSettings } from './writers/settings-writer.mjs';
 import { installSuperpowers, uninstallSuperpowers } from './writers/superpowers-writer.mjs';
@@ -52,6 +59,9 @@ async function runInstall(args) {
     installSkill(projectRoot, toolKey);
     if (config.confluenceEnabled) {
       installConfluenceSkill(projectRoot, toolKey);
+    }
+    if (config.trelloEnabled) {
+      installTrelloSkill(projectRoot, toolKey);
     }
     installMcp(projectRoot, toolKey, config);
     installSettings(projectRoot, toolKey, config);
@@ -117,6 +127,7 @@ async function runUninstall(args) {
 
     uninstallSkill(projectRoot, toolKey);
     uninstallConfluenceSkill(projectRoot, toolKey);
+    uninstallTrelloSkill(projectRoot, toolKey);
     uninstallMcp(projectRoot, toolKey);
     uninstallSettings(projectRoot, toolKey);
     uninstallSuperpowers(projectRoot, toolKey);
@@ -146,6 +157,15 @@ function printUsageGuide(config) {
     console.log('');
     console.log(
       `    ${pc.cyan('/read-confluence-docs')}           ${pc.dim('Search or fetch Confluence pages')}`,
+    );
+  }
+  if (config.trelloEnabled) {
+    console.log('');
+    console.log(
+      `    ${pc.cyan('/resolve-trello-ticket')}            ${pc.dim('List your assigned Trello cards')}`,
+    );
+    console.log(
+      `    ${pc.cyan('/resolve-trello-ticket <cardId>')}   ${pc.dim('Work on a specific card')}`,
     );
   }
 }
