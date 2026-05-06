@@ -6,6 +6,7 @@ import { getToolConfig } from '../detect-tool.mjs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_DIR = path.join(__dirname, '..', '..', 'templates', 'resolve-jira-ticket');
 const CONFLUENCE_TEMPLATE_DIR = path.join(__dirname, '..', '..', 'templates', 'read-confluence-docs');
+const TRELLO_TEMPLATE_DIR = path.join(__dirname, '..', '..', 'templates', 'resolve-trello-ticket');
 
 /**
  * Install skill file (and workflow for Antigravity) for a specific tool.
@@ -103,5 +104,65 @@ export function uninstallConfluenceSkill(projectRoot, toolKey) {
     removeDirIfEmpty(destDir);
   } else {
     log.info(`Confluence skill not found: ${path.relative(projectRoot, destFile)}`);
+  }
+}
+
+/**
+ * Install Trello skill file (and workflow for Antigravity) for a specific tool.
+ */
+export function installTrelloSkill(projectRoot, toolKey) {
+  const config = getToolConfig(toolKey);
+  if (!config) throw new Error(`Unknown tool: ${toolKey}`);
+
+  const srcFile = path.join(TRELLO_TEMPLATE_DIR, 'SKILL.md');
+  const destDir = config.trelloSkillDir(projectRoot);
+  const destFile = path.join(destDir, config.trelloSkillFile);
+
+  if (fileExists(destFile)) {
+    log.warn(`Skill already exists: ${path.relative(projectRoot, destFile)} (overwriting)`);
+  }
+
+  copyFile(srcFile, destFile);
+  log.success(`Installed Trello skill: ${path.relative(projectRoot, destFile)}`);
+
+  if (config.workflowDir && config.trelloWorkflowFile) {
+    const workflowSrc = path.join(TRELLO_TEMPLATE_DIR, 'workflow.md');
+    const workflowDir = config.workflowDir(projectRoot);
+    const workflowDest = path.join(workflowDir, config.trelloWorkflowFile);
+
+    if (fileExists(workflowDest)) {
+      log.warn(`Workflow already exists: ${path.relative(projectRoot, workflowDest)} (overwriting)`);
+    }
+
+    copyFile(workflowSrc, workflowDest);
+    log.success(`Installed Trello workflow: ${path.relative(projectRoot, workflowDest)}`);
+  }
+}
+
+/**
+ * Uninstall Trello skill (and workflow) for a specific tool.
+ */
+export function uninstallTrelloSkill(projectRoot, toolKey) {
+  const config = getToolConfig(toolKey);
+  if (!config) return;
+
+  const destDir = config.trelloSkillDir(projectRoot);
+  const destFile = path.join(destDir, config.trelloSkillFile);
+
+  if (removeFile(destFile)) {
+    log.success(`Removed: ${path.relative(projectRoot, destFile)}`);
+    removeDirIfEmpty(destDir);
+  } else {
+    log.info(`Trello skill not found: ${path.relative(projectRoot, destFile)}`);
+  }
+
+  if (config.workflowDir && config.trelloWorkflowFile) {
+    const workflowDest = path.join(
+      config.workflowDir(projectRoot),
+      config.trelloWorkflowFile,
+    );
+    if (removeFile(workflowDest)) {
+      log.success(`Removed: ${path.relative(projectRoot, workflowDest)}`);
+    }
   }
 }
