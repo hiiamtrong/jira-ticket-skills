@@ -29,6 +29,9 @@ The installer will prompt for:
 | `.agent/skills/read-confluence-docs/SKILL.md`      | Confluence skill (Antigravity, if enabled) |
 | `.mcp.json` / `.cursor/mcp.json`                   | MCP server configs (Jira + Confluence + Figma) |
 | `.claude/settings.json`                            | Environment variables (`JIRA_PROJECT_KEY`) |
+| `.claude/skills/resolve-trello-ticket/SKILL.md`    | Trello skill (Claude Code, if enabled)     |
+| `.cursor/skills/resolve-trello-ticket/SKILL.md`    | Trello skill (Cursor, if enabled)          |
+| `.agent/skills/resolve-trello-ticket/SKILL.md`     | Trello skill (Antigravity, if enabled)     |
 
 Only files for your selected tool(s) are created.
 
@@ -61,6 +64,35 @@ After installation with Confluence enabled, you can also invoke the Confluence s
 ```
 
 The skill searches, fetches, and summarizes Confluence pages — and is automatically chained by `/resolve-jira-ticket` when Confluence links are detected in a ticket.
+
+## Trello Integration (optional)
+
+Resolve Trello cards end-to-end with the same workflow as Jira tickets. Opt-in during install.
+
+### Setup
+
+During `npx jira-ticket-skills`, answer **Yes** to "Add Trello integration?" and supply:
+
+- **Trello API key** — from <https://trello.com/app-key>
+- **Trello token** — generate from the same page
+- **Default board ID** — visible in the board URL: `https://trello.com/b/<boardId>/...`
+
+For non-interactive installs (`--yes` flag), set:
+
+```bash
+TRELLO_API_KEY=...
+TRELLO_TOKEN=...
+TRELLO_BOARD_ID=...
+```
+
+### Trello Usage
+
+```bash
+/resolve-trello-ticket               # List cards in your active list (you choose the list)
+/resolve-trello-ticket <cardId>      # Work on a specific card
+```
+
+The skill auto-moves the card to "In Progress" before implementation. After tests pass, it suggests (but does not auto-execute) the next move.
 
 ## Prerequisites
 
@@ -126,6 +158,19 @@ npx jira-ticket-skills --yes
 ```
 
 > `CONFLUENCE_EMAIL` is required for Atlassian Cloud (API token auth). Omit it for Server/DC (PAT auth).
+
+To include Trello in non-interactive mode:
+
+```bash
+JIRA_URL=https://jira.example.com \
+JIRA_TOKEN=your-jira-token \
+JIRA_PROJECT_KEY=PRJ \
+TRELLO_API_KEY=your-trello-api-key \
+TRELLO_TOKEN=your-trello-token \
+TRELLO_BOARD_ID=your-board-id \
+TOOL=claude \
+npx jira-ticket-skills --yes
+```
 
 ## Uninstall
 
