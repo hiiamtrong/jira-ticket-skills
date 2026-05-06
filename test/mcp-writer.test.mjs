@@ -210,3 +210,75 @@ test('installMcp(cursor): writes to .cursor/mcp.json', () => {
     cleanup(root);
   }
 });
+
+// ── Trello server tests ───────────────────────────────────────────────────────
+
+test('installMcp(claude): adds trello server when trelloEnabled=true', () => {
+  const root = makeTempDir();
+  try {
+    const config = {
+      ...baseConfig,
+      trelloEnabled: true,
+      trelloApiKey: 'trello-api-key-123',
+      trelloToken: 'trello-token-abc',
+    };
+    installMcp(root, 'claude', config);
+    const mcp = readMcp(root);
+    const servers = mcp.mcpServers;
+
+    assert.ok(servers.trello, 'trello server must be present');
+    assert.equal(servers.trello.command, 'bunx');
+    assert.deepEqual(servers.trello.args, ['@delorenj/mcp-server-trello']);
+    assert.equal(servers.trello.env.TRELLO_API_KEY, 'trello-api-key-123');
+    assert.equal(servers.trello.env.TRELLO_TOKEN, 'trello-token-abc');
+  } finally {
+    cleanup(root);
+  }
+});
+
+test('installMcp(claude): no trello server when trelloEnabled=false', () => {
+  const root = makeTempDir();
+  try {
+    installMcp(root, 'claude', baseConfig);
+    const mcp = readMcp(root);
+    assert.ok(!mcp.mcpServers.trello, 'trello server must not be added when disabled');
+  } finally {
+    cleanup(root);
+  }
+});
+
+test('installMcp(claude): jira and trello coexist', () => {
+  const root = makeTempDir();
+  try {
+    const config = {
+      ...baseConfig,
+      trelloEnabled: true,
+      trelloApiKey: 'k',
+      trelloToken: 't',
+    };
+    installMcp(root, 'claude', config);
+    const mcp = readMcp(root);
+    assert.ok(mcp.mcpServers.jira, 'jira must be present');
+    assert.ok(mcp.mcpServers.trello, 'trello must be present');
+  } finally {
+    cleanup(root);
+  }
+});
+
+test('uninstallMcp(claude): removes trello server', () => {
+  const root = makeTempDir();
+  try {
+    const config = {
+      ...baseConfig,
+      trelloEnabled: true,
+      trelloApiKey: 'k',
+      trelloToken: 't',
+    };
+    installMcp(root, 'claude', config);
+    uninstallMcp(root, 'claude');
+    const mcp = readMcp(root);
+    assert.ok(!mcp.mcpServers.trello, 'trello server must be removed');
+  } finally {
+    cleanup(root);
+  }
+});

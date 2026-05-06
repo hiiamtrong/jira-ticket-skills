@@ -71,6 +71,18 @@ function buildMcpServers(config) {
     }
   }
 
+  // Trello MCP (via bunx @delorenj/mcp-server-trello)
+  if (config.trelloEnabled) {
+    servers.trello = {
+      command: 'bunx',
+      args: ['@delorenj/mcp-server-trello'],
+      env: {
+        TRELLO_API_KEY: config.trelloApiKey,
+        TRELLO_TOKEN: config.trelloToken,
+      },
+    };
+  }
+
   return servers;
 }
 
@@ -142,7 +154,7 @@ export function uninstallMcp(projectRoot, toolKey) {
     return;
   }
 
-  const serversToRemove = ['jira', 'figma-bridge', 'confluence'];
+  const serversToRemove = ['jira', 'figma-bridge', 'confluence', 'trello'];
   const removed = [];
 
   for (const name of serversToRemove) {
