@@ -24,6 +24,9 @@ function installJsonSettings(projectRoot, toolConfig, config) {
   const existing = readJson(settingsPath) || {};
 
   const envUpdate = { JIRA_PROJECT_KEY: config.projectKey };
+  if (config.trelloEnabled) {
+    envUpdate.TRELLO_BOARD_ID = config.trelloBoardId;
+  }
 
   let target = existing;
   const envPath = toolConfig.settingsEnvPath;
@@ -50,8 +53,19 @@ function installJsonSettings(projectRoot, toolConfig, config) {
 function installRulesSettings(projectRoot, toolConfig, config) {
   const rulesPath = toolConfig.settingsFile(projectRoot);
 
+  const trelloBlock = config.trelloEnabled
+    ? `
+
+# Trello Configuration
+
+- **TRELLO_BOARD_ID**: \`${config.trelloBoardId}\`
+
+When using the resolve-trello-ticket skill, use board ID \`${config.trelloBoardId}\`.
+`
+    : '';
+
   const content = `---
-description: Jira project configuration for resolve-jira-ticket skill
+description: Jira and Trello project configuration for resolve-* skills
 globs:
 alwaysApply: true
 ---
@@ -62,7 +76,7 @@ alwaysApply: true
 
 When using the resolve-jira-ticket skill or searching Jira, use project key \`${config.projectKey}\`.
 For JQL queries, use: \`project = ${config.projectKey}\`
-`;
+${trelloBlock}`;
 
   writeFile(rulesPath, content);
 
@@ -102,6 +116,7 @@ function uninstallJsonSettings(projectRoot, toolConfig) {
     if (!target[key]) return;
     if (key === envPath[envPath.length - 1]) {
       delete target[key].JIRA_PROJECT_KEY;
+      delete target[key].TRELLO_BOARD_ID;
     } else {
       target = target[key];
     }
@@ -109,7 +124,7 @@ function uninstallJsonSettings(projectRoot, toolConfig) {
 
   writeJson(settingsPath, existing);
   log.success(
-    `Removed JIRA_PROJECT_KEY from ${path.relative(projectRoot, settingsPath)}`,
+    `Removed JIRA_PROJECT_KEY and TRELLO_BOARD_ID from ${path.relative(projectRoot, settingsPath)}`,
   );
 }
 
