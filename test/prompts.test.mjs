@@ -152,3 +152,61 @@ test('runNonInteractive: trims whitespace from CONFLUENCE_TOKEN', () => {
   const config = runNonInteractive({ tool: 'claude', noFigma: true });
   assert.equal(config.confluenceToken, 'my-token');
 });
+
+// ── Trello disabled (no env vars) ────────────────────────────────────────────
+
+test('runNonInteractive: trelloEnabled=false when no Trello env vars set', () => {
+  setJiraEnv();
+  delete process.env.TRELLO_API_KEY;
+  delete process.env.TRELLO_TOKEN;
+  delete process.env.TRELLO_BOARD_ID;
+
+  const config = runNonInteractive({ tool: 'claude', noFigma: true });
+  assert.equal(config.trelloEnabled, false);
+});
+
+test('runNonInteractive: trelloEnabled=false when only TRELLO_API_KEY set', () => {
+  setJiraEnv({ TRELLO_API_KEY: 'k' });
+  delete process.env.TRELLO_TOKEN;
+  delete process.env.TRELLO_BOARD_ID;
+
+  const config = runNonInteractive({ tool: 'claude', noFigma: true });
+  assert.equal(config.trelloEnabled, false);
+});
+
+test('runNonInteractive: trelloEnabled=false when TRELLO_BOARD_ID missing', () => {
+  setJiraEnv({ TRELLO_API_KEY: 'k', TRELLO_TOKEN: 't' });
+  delete process.env.TRELLO_BOARD_ID;
+
+  const config = runNonInteractive({ tool: 'claude', noFigma: true });
+  assert.equal(config.trelloEnabled, false);
+});
+
+// ── Trello enabled ───────────────────────────────────────────────────────────
+
+test('runNonInteractive: trelloEnabled=true when all three Trello env vars set', () => {
+  setJiraEnv({
+    TRELLO_API_KEY: 'api-key',
+    TRELLO_TOKEN: 'token',
+    TRELLO_BOARD_ID: 'board-id',
+  });
+
+  const config = runNonInteractive({ tool: 'claude', noFigma: true });
+  assert.equal(config.trelloEnabled, true);
+  assert.equal(config.trelloApiKey, 'api-key');
+  assert.equal(config.trelloToken, 'token');
+  assert.equal(config.trelloBoardId, 'board-id');
+});
+
+test('runNonInteractive: trims whitespace from Trello env vars', () => {
+  setJiraEnv({
+    TRELLO_API_KEY: '  k  ',
+    TRELLO_TOKEN: '  t  ',
+    TRELLO_BOARD_ID: '  b  ',
+  });
+
+  const config = runNonInteractive({ tool: 'claude', noFigma: true });
+  assert.equal(config.trelloApiKey, 'k');
+  assert.equal(config.trelloToken, 't');
+  assert.equal(config.trelloBoardId, 'b');
+});

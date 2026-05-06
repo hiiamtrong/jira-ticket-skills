@@ -164,6 +164,51 @@ export async function runPrompts(projectRoot, cliArgs) {
     config.confluenceToken = confluenceToken.value;
   }
 
+  // ── 4b. Trello configuration ─────────────────────────────────────────
+  log.step('Trello Integration');
+
+  const trelloEnable = await prompts({
+    type: 'confirm',
+    name: 'value',
+    message: 'Add Trello integration (resolve Trello cards from your AI tool)?',
+    initial: false,
+  });
+  config.trelloEnabled = trelloEnable.value ?? false;
+
+  if (config.trelloEnabled) {
+    const apiKey = await prompts({
+      type: 'text',
+      name: 'value',
+      message: 'Trello API key (https://trello.com/app-key)',
+      initial: process.env.TRELLO_API_KEY || '',
+      format: (v) => v.trim(),
+      validate: (v) => (v.trim() ? true : 'API key is required'),
+    });
+    if (apiKey.value === undefined) throw new Error('Cancelled');
+    config.trelloApiKey = apiKey.value;
+
+    const token = await prompts({
+      type: 'password',
+      name: 'value',
+      message: 'Trello token',
+      format: (v) => v.trim(),
+      validate: (v) => (v.trim() ? true : 'Token is required'),
+    });
+    if (token.value === undefined) throw new Error('Cancelled');
+    config.trelloToken = token.value;
+
+    const boardId = await prompts({
+      type: 'text',
+      name: 'value',
+      message: 'Default Trello board ID',
+      initial: process.env.TRELLO_BOARD_ID || '',
+      format: (v) => v.trim(),
+      validate: (v) => (v.trim() ? true : 'Board ID is required'),
+    });
+    if (boardId.value === undefined) throw new Error('Cancelled');
+    config.trelloBoardId = boardId.value;
+  }
+
   // ── 4. Figma configuration ───────────────────────────────────────────
   if (!cliArgs.noFigma) {
     log.step('Figma Integration');
@@ -241,6 +286,11 @@ export function runNonInteractive(cliArgs) {
   const confluenceEmail = process.env.CONFLUENCE_EMAIL?.trim();
   const confluenceEnabled = Boolean(confluenceUrl && confluenceToken);
 
+  const trelloApiKey = process.env.TRELLO_API_KEY?.trim();
+  const trelloToken = process.env.TRELLO_TOKEN?.trim();
+  const trelloBoardId = process.env.TRELLO_BOARD_ID?.trim();
+  const trelloEnabled = Boolean(trelloApiKey && trelloToken && trelloBoardId);
+
   return {
     tools: [tool],
     jiraUrl: jiraUrl.startsWith('http') ? jiraUrl : `https://${jiraUrl}`,
@@ -254,6 +304,12 @@ export function runNonInteractive(cliArgs) {
       confluenceToken,
       confluenceAuthMethod: confluenceEmail ? 'api_token' : 'personal_token',
       ...(confluenceEmail && { confluenceEmail }),
+    }),
+    trelloEnabled,
+    ...(trelloEnabled && {
+      trelloApiKey,
+      trelloToken,
+      trelloBoardId,
     }),
   };
 }
