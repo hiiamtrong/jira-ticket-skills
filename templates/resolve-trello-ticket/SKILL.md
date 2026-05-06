@@ -72,7 +72,7 @@ Gather ALL context via Trello MCP tools:
 3. **Acceptance Criteria (combo strategy)** — combine results from all three sources, deduplicating:
    a. Parse the card description for markdown checklists (`- [ ]` / `- [x]`) and "AC:" / "Acceptance Criteria:" sections.
    b. `get_acceptance_criteria(cardId="<cardId>")` — fetches the named "Acceptance Criteria" checklist if present.
-   c. For every other checklist on the card, call `get_checklist_items` to capture its items.
+   c. For every other checklist on the card, call `get_checklist_items(checklistId="<id>")` to capture its items.
 
 4. **Attachments** — for each attachment in the `get_card` result:
    - Look at the URL extension and MIME type to classify:
@@ -201,8 +201,13 @@ Guidelines for ASCII drafts:
 - Use `[Button Text]` for buttons and CTAs
 - Use `[____]` for input fields
 - Use `( ) Option` for radio buttons, `[x] Option` for checkboxes
+- Use `v` or `[Dropdown v]` for select/dropdown
+- Use `...` for truncated text
 - Show multiple states if the design has them
 - Label each section clearly
+- Keep proportions roughly matching the Figma layout
+- For tables, use standard ASCII table format with `|` and `---`
+- Add annotations with `<-- note` for non-obvious interactions
 
 ## Phase 3: Map to Codebase
 
@@ -297,11 +302,11 @@ Follow the four debugging phases strictly:
 | ----------------- | ----------------------------------- | -------------------------------- |
 | 1. Select         | Pick list, then card                | Trello MCP (`set_active_board`, `get_lists`, `get_cards_by_list_id`) |
 | 2. Analyze        | Card details, comments, AC, attachments | Trello MCP (`get_card`, `get_card_comments`, `get_acceptance_criteria`, `get_checklist_items`) |
-| 2.4 Confluence    | Read linked Confluence docs         | read-confluence-docs             |
+| 2. Confluence     | Read linked Confluence docs         | read-confluence-docs             |
 | 2.5 Design        | Extract Figma specs + ASCII UI draft | Figma MCP                       |
 | 3. Map            | Find relevant code paths            | Grep, Read, git log             |
 | 4. Understand     | Feature/bug design context          | brainstorming                    |
-| 5. Move + Implement | Auto-move to In Progress, then fix/build | Trello MCP (`move_card`) + systematic-debugging |
+| 5. Auto-move + Implement | Auto-move to In Progress, then fix/build | Trello MCP (`move_card`) + systematic-debugging |
 | 6. Verify         | Tests, lint, design match, evidence | verification-before-completion   |
 
 ## Red Flags - STOP if you catch yourself:
