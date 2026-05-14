@@ -280,21 +280,67 @@ Follow the four debugging phases strictly:
 3. Hypothesis and testing
 4. Implementation of fix
 
-## Phase 6: Verification
+## Phase 6: Verification (gatekeeper — tests are mandatory)
 
 **INVOKE:** `superpowers:verification-before-completion`
+
+A bug or feature is NOT done until a test guards it. The test is the gatekeeper that prevents regression.
+
+### Step 1 — Write/extend tests for THIS fix
+
+For **bugs:**
+- Write a test that reproduces the original bug. It must FAIL on the unfixed code path and PASS after your fix.
+- Cover the specific edge case from the reproduction steps in the Card Brief.
+
+For **features/stories:**
+- Write tests that cover each acceptance criterion (description text + every checklist item) from the Card Brief.
+- Include happy path + at least one edge case.
+
+For **refactors / non-behavioral changes:**
+- Confirm existing tests still cover the touched code path. If coverage is missing, add it.
+- State explicitly: *"No new behavior added — existing tests at `<paths>` cover the change."*
+
+**Skip-test allowed only if** the change is documentation/comment-only. State this explicitly.
+
+### Step 2 — Run the full suite
 
 1. Run the project's test suite (e.g., `npm test`, `pnpm test`, `yarn test`, `make test`).
 2. Run the project's linter if available (e.g., `npm run lint`, `pnpm lint`).
 3. If card has reproduction steps, verify manually.
 4. If Design Brief exists, verify UI changes match Figma specs.
-5. Report results with evidence.
+5. Report results with evidence (command output).
 
-**Do NOT auto-move the card.** After verification:
+### Step 3 — Gatekeeper check (MUST pass before Phase 7)
 
-- Report: *"Implementation done. Tests + lint passed (evidence above)."*
-- Suggest (do not execute): *"To advance the card, call `move_card(cardId='<cardId>', listId='<targetListId>')`. Candidate target lists from this board: <names containing 'Review' or 'Done'>."*
-- If any AC checklist items are still unchecked, suggest: *"Unchecked AC items remain: [list]. To mark complete, call `update_checklist_item(...)` for each."*
+Confirm in your report:
+- [ ] New/updated test(s) exist for THIS fix at `<file:line>`
+- [ ] Those tests pass
+- [ ] Full suite passes
+- [ ] Linter passes (if configured)
+
+If any item is unchecked → **STOP**. Do not proceed to Phase 7. Fix or add the missing piece.
+
+## Phase 7: Move card to "Review" (with confirmation)
+
+After the gatekeeper passes:
+
+1. From `get_lists()` (already cached from Phase 1), match list names case-insensitively against `["In Review", "Code Review", "Review", "Ready for Review"]`.
+2. Apply the move policy:
+   - **Exactly one match:** ask the user *"Tests pass. Move card to '<list name>'? [Y/n]"*. On confirm → `move_card(cardId="<cardId>", listId="<targetListId>")`.
+   - **Multiple matches:** present numbered list and ask which to apply.
+   - **No match:** report *"No 'Review'-style list found. Available lists: [names]. Skipping move — please advance the card manually."*
+3. Tick off any acceptance-criteria checklist items that are now satisfied:
+   - For each unchecked item that the implementation covers, ask *"Mark AC item '<text>' as done? [Y/n]"* then call `update_checklist_item(...)`.
+   - List remaining unchecked items in the report.
+4. After moving, post a summary comment via `add_comment`:
+
+   ```
+   Fix implemented. Test(s): <file:line>. Suite + lint pass.
+   ```
+
+5. If any AC items remain unchecked AND uncovered, do NOT move — return to Phase 5.
+
+**Never move silently.** Always announce the transition before applying it. If user declines, report status and stop.
 
 ## Quick Reference
 
@@ -307,7 +353,8 @@ Follow the four debugging phases strictly:
 | 3. Map            | Find relevant code paths            | Grep, Read, git log             |
 | 4. Understand     | Feature/bug design context          | brainstorming                    |
 | 5. Auto-move + Implement | Auto-move to In Progress, then fix/build | Trello MCP (`move_card`) + systematic-debugging |
-| 6. Verify         | Tests, lint, design match, evidence | verification-before-completion   |
+| 6. Verify (gate)  | Write/extend tests for fix, run suite + lint | verification-before-completion |
+| 7. Move to Review | Confirm + `move_card` to In Review, tick AC | Trello MCP (`move_card`, `update_checklist_item`, `add_comment`) |
 
 ## Red Flags - STOP if you catch yourself:
 
@@ -319,5 +366,7 @@ Follow the four debugging phases strictly:
 - **Not creating an ASCII UI draft when Figma links are present**
 - Not invoking systematic-debugging for the fix
 - Claiming "fixed" without test output evidence
-- **Auto-moving the card after Phase 6 (only suggest)**
+- **Moving the card to Review without a test that guards THIS fix**
+- **Skipping the Phase 6 gatekeeper checklist (test exists + passes)**
+- Moving the card silently — Phase 7 requires user confirmation
 - Implementing UI changes without referencing the Design Brief

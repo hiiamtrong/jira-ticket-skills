@@ -249,17 +249,65 @@ Follow the four debugging phases strictly:
 3. Hypothesis and testing
 4. Implementation of fix
 
-## Phase 6: Verification
+## Phase 6: Verification (gatekeeper — tests are mandatory)
 
 **INVOKE:** `superpowers:verification-before-completion`
 
-1. Run the project's test suite (e.g., `npm test`, `pnpm test`, `yarn test`, `make test`)
-2. Run the project's linter if available (e.g., `npm run lint`, `pnpm lint`)
-3. If ticket has reproduction steps, verify manually
-4. If Design Brief exists, verify UI changes match Figma specs
-5. Report results with evidence
+A bug or feature is NOT done until a test guards it. The test is the gatekeeper that prevents regression.
 
-**Do NOT update Jira automatically.** Report fix summary and let user decide.
+### Step 1 — Write/extend tests for THIS fix
+
+For **bugs:**
+- Write a test that reproduces the original bug. It must FAIL on the unfixed code path and PASS after your fix.
+- Cover the specific edge case from the reproduction steps in the Ticket Brief.
+
+For **features/stories:**
+- Write tests that cover each acceptance criterion from the Ticket Brief.
+- Include happy path + at least one edge case.
+
+For **refactors / non-behavioral changes:**
+- Confirm existing tests still cover the touched code path. If coverage is missing, add it.
+- State explicitly: *"No new behavior added — existing tests at `<paths>` cover the change."*
+
+**Skip-test allowed only if** the change is documentation/comment-only. State this explicitly.
+
+### Step 2 — Run the full suite
+
+1. Run the project's test suite (e.g., `npm test`, `pnpm test`, `yarn test`, `make test`).
+2. Run the project's linter if available (e.g., `npm run lint`, `pnpm lint`).
+3. If ticket has reproduction steps, verify manually.
+4. If Design Brief exists, verify UI changes match Figma specs.
+5. Report results with evidence (command output).
+
+### Step 3 — Gatekeeper check (MUST pass before Phase 7)
+
+Confirm in your report:
+- [ ] New/updated test(s) exist for THIS fix at `<file:line>`
+- [ ] Those tests pass
+- [ ] Full suite passes
+- [ ] Linter passes (if configured)
+
+If any item is unchecked → **STOP**. Do not proceed to Phase 7. Fix or add the missing piece.
+
+## Phase 7: Move ticket to "In Review" (with confirmation)
+
+After the gatekeeper passes:
+
+1. Call `jira_get_transitions(issueKey)` to list available transitions.
+2. Match transition names case-insensitively against `["In Review", "Code Review", "Review", "Ready for Review"]`.
+3. Apply the move policy:
+   - **Exactly one match:** ask the user *"Tests pass. Move <PRJ-XXX> to '<transition name>'? [Y/n]"*. On confirm → `jira_transition_issue(issueKey, transitionId)`.
+   - **Multiple matches:** present numbered list and ask which to apply.
+   - **No match:** report *"No 'In Review'-style transition found. Available: [list]. Skipping move — please transition manually."*
+4. After moving, post a brief comment via `jira_add_comment` summarizing the fix and pointing at the test:
+
+   ```
+   Fix implemented. Test(s): <file:line>. Suite + lint pass.
+   ```
+
+5. If any acceptance criteria remain unaddressed, list them in the report and do NOT move — return to Phase 5.
+
+**Never move silently.** Always announce the transition before applying it. If user declines, report status and stop.
 
 ## Quick Reference
 
@@ -272,7 +320,8 @@ Follow the four debugging phases strictly:
 | 3. Map            | Find relevant code paths            | Grep, Read, git log             |
 | 4. Understand     | Feature/bug design context          | brainstorming                    |
 | 5. Debug/Implement| Root cause + fix / build feature    | systematic-debugging             |
-| 6. Verify         | Tests, lint, design match, evidence | verification-before-completion   |
+| 6. Verify (gate)  | Write/extend tests for fix, run suite + lint | verification-before-completion |
+| 7. Move to Review | Confirm + `jira_transition_issue` to In Review | Jira MCP (`jira_get_transitions`, `jira_transition_issue`, `jira_add_comment`) |
 
 ## Red Flags - STOP if you catch yourself:
 
@@ -283,5 +332,7 @@ Follow the four debugging phases strictly:
 - **Not creating an ASCII UI draft when Figma links are present**
 - Not invoking systematic-debugging for the fix
 - Claiming "fixed" without test output evidence
-- Updating Jira without user permission
+- **Moving the ticket to In Review without a test that guards THIS fix**
+- **Skipping the Phase 6 gatekeeper checklist (test exists + passes)**
+- Transitioning the ticket without confirming with the user first
 - Implementing UI changes without referencing the Design Brief

@@ -57,18 +57,41 @@ Hand off full context from Phases 1-4. Follow the four debugging phases:
 3. Hypothesis and testing
 4. Implementation
 
-### Phase 6: Verify
-1. Run the project's test suite
-2. Run the project's linter
-3. If ticket has repro steps, verify the fix manually
-4. If Design Brief exists, verify UI matches Figma specs
-5. Report results with evidence (command output)
+### Phase 6: Verify (test gatekeeper)
+A bug or feature is NOT done until a test guards it.
 
-**Do NOT update Jira automatically.** Report fix summary and let user decide.
+1. **Write/extend tests for THIS fix** — bug repro test that fails without fix; feature tests covering each AC; refactor: confirm existing coverage. Doc-only changes can skip.
+2. Run the project's test suite
+3. Run the project's linter
+4. If ticket has repro steps, verify the fix manually
+5. If Design Brief exists, verify UI matches Figma specs
+6. Report results with evidence (command output)
+
+**Gatekeeper checklist (must all pass before Phase 7):**
+- [ ] New/updated test(s) exist for THIS fix at `<file:line>`
+- [ ] Those tests pass
+- [ ] Full suite passes
+- [ ] Linter passes (if configured)
+
+If any item is unchecked → STOP. Do not proceed to Phase 7.
+
+### Phase 7: Move ticket to "In Review" (with confirmation)
+After the gatekeeper passes:
+
+1. Call `jira_get_transitions(issueKey)` to list available transitions.
+2. Match transition names case-insensitively against `["In Review", "Code Review", "Review", "Ready for Review"]`.
+3. Exactly one match → ask *"Tests pass. Move <PRJ-XXX> to '<transition name>'? [Y/n]"* → on confirm `jira_transition_issue(issueKey, transitionId)`.
+4. Multiple matches → present numbered list and ask which.
+5. No match → report skip and ask user to transition manually.
+6. Post a summary `jira_add_comment`: *"Fix implemented. Test(s): <file:line>. Suite + lint pass."*
+
+**Never move silently.** Always announce before applying.
 
 ## Red Flags — STOP if you catch yourself:
 - Proposing a fix before completing Phase 3
 - Skipping comments or linked issues in Phase 1
 - Skipping Figma analysis when links are present
 - Claiming "fixed" without test output evidence
-- Updating Jira without user permission
+- Moving the ticket to In Review without a test that guards THIS fix
+- Skipping the Phase 6 gatekeeper checklist
+- Transitioning the ticket without confirming with the user first

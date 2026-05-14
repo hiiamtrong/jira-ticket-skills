@@ -68,20 +68,42 @@ Hand off full context from Phases 1-4. Follow the four debugging phases:
 3. Hypothesis and testing
 4. Implementation
 
-### Phase 6: Verify (no auto-move)
-1. Run the project's test suite
-2. Run the project's linter
-3. If card has repro steps, verify the fix manually
-4. If Design Brief exists, verify UI matches Figma specs
-5. Report results with evidence (command output)
+### Phase 6: Verify (test gatekeeper)
+A bug or feature is NOT done until a test guards it.
 
-**Do NOT auto-move the card.** Suggest the next move:
-- *"Implementation done. To advance the card, call `move_card(cardId='<cardId>', listId='<targetListId>')`. Candidate target lists: <names containing 'Review' or 'Done'>."*
-- If unchecked AC items remain, suggest `update_checklist_item` calls.
+1. **Write/extend tests for THIS fix** — bug repro test that fails without fix; feature tests covering each AC item; refactor: confirm existing coverage. Doc-only changes can skip.
+2. Run the project's test suite
+3. Run the project's linter
+4. If card has repro steps, verify the fix manually
+5. If Design Brief exists, verify UI matches Figma specs
+6. Report results with evidence (command output)
+
+**Gatekeeper checklist (must all pass before Phase 7):**
+- [ ] New/updated test(s) exist for THIS fix at `<file:line>`
+- [ ] Those tests pass
+- [ ] Full suite passes
+- [ ] Linter passes (if configured)
+
+If any item is unchecked → STOP. Do not proceed to Phase 7.
+
+### Phase 7: Move card to "Review" (with confirmation)
+After the gatekeeper passes:
+
+1. Match list names case-insensitively against `["In Review", "Code Review", "Review", "Ready for Review"]`.
+2. Exactly one match → ask *"Tests pass. Move card to '<list name>'? [Y/n]"* → on confirm `move_card(cardId, listId)`.
+3. Multiple matches → present numbered list and ask which.
+4. No match → report skip and ask user to advance manually.
+5. Tick off any AC checklist items the implementation now satisfies (ask before each `update_checklist_item`).
+6. Post a summary `add_comment`: *"Fix implemented. Test(s): <file:line>. Suite + lint pass."*
+7. If unchecked AC items remain AND uncovered → do NOT move; return to Phase 5.
+
+**Never move silently.** Always announce before applying.
 
 ## Red Flags — STOP if you catch yourself:
 - Proposing a fix before completing Phase 3
 - Skipping comments, checklists, or attachments in Phase 1
 - Skipping Figma analysis when links are present
 - Claiming "fixed" without test output evidence
-- Auto-moving the card after Phase 6
+- Moving the card to Review without a test that guards THIS fix
+- Skipping the Phase 6 gatekeeper checklist
+- Moving the card silently — Phase 7 requires user confirmation
