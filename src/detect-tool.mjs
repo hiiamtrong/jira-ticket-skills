@@ -17,6 +17,9 @@ export const TOOL_CONFIGS = {
     trelloSkillDir: (root) =>
       path.join(root, '.claude', 'skills', 'resolve-trello-ticket'),
     trelloSkillFile: 'SKILL.md',
+    verifySkillDir: (root) =>
+      path.join(root, '.claude', 'skills', 'verify-jira-ticket'),
+    verifySkillFile: 'SKILL.md',
     mcpConfig: (root) => path.join(root, '.mcp.json'),
     mcpKey: 'mcpServers',
     settingsFile: (root) => path.join(root, '.claude', 'settings.json'),
@@ -32,6 +35,8 @@ export const TOOL_CONFIGS = {
     trelloSkillDir: (root) =>
       path.join(root, '.cursor', 'skills', 'resolve-trello-ticket'),
     trelloSkillFile: 'SKILL.md',
+    verifySkillDir: (root) => path.join(root, '.cursor', 'skills', 'verify-jira-ticket'),
+    verifySkillFile: 'SKILL.md',
     mcpConfig: (root) => path.join(root, '.cursor', 'mcp.json'),
     mcpKey: 'mcpServers',
     settingsType: 'rules',
@@ -50,6 +55,8 @@ export const TOOL_CONFIGS = {
       path.join(root, '.agent', 'skills', 'resolve-trello-ticket'),
     trelloSkillFile: 'SKILL.md',
     trelloWorkflowFile: 'resolve-trello-ticket.md',
+    verifySkillDir: (root) => path.join(root, '.agent', 'skills', 'verify-jira-ticket'),
+    verifySkillFile: 'SKILL.md',
     workflowDir: (root) => path.join(root, '.agent', 'workflows'),
     workflowFile: 'resolve-jira-ticket.md',
     // Antigravity IDE uses global config at ~/.gemini/antigravity/mcp_config.json

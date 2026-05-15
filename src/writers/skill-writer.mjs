@@ -7,6 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATE_DIR = path.join(__dirname, '..', '..', 'templates', 'resolve-jira-ticket');
 const CONFLUENCE_TEMPLATE_DIR = path.join(__dirname, '..', '..', 'templates', 'read-confluence-docs');
 const TRELLO_TEMPLATE_DIR = path.join(__dirname, '..', '..', 'templates', 'resolve-trello-ticket');
+const VERIFY_TEMPLATE_DIR = path.join(__dirname, '..', '..', 'templates', 'verify-jira-ticket');
 
 /**
  * Install skill file (and workflow for Antigravity) for a specific tool.
@@ -164,5 +165,42 @@ export function uninstallTrelloSkill(projectRoot, toolKey) {
     if (removeFile(workflowDest)) {
       log.success(`Removed: ${path.relative(projectRoot, workflowDest)}`);
     }
+  }
+}
+
+/**
+ * Install verify-jira-ticket skill for a specific tool.
+ */
+export function installVerifySkill(projectRoot, toolKey) {
+  const config = getToolConfig(toolKey);
+  if (!config) throw new Error(`Unknown tool: ${toolKey}`);
+
+  const srcFile = path.join(VERIFY_TEMPLATE_DIR, 'SKILL.md');
+  const destDir = config.verifySkillDir(projectRoot);
+  const destFile = path.join(destDir, config.verifySkillFile);
+
+  if (fileExists(destFile)) {
+    log.warn(`Skill already exists: ${path.relative(projectRoot, destFile)} (overwriting)`);
+  }
+
+  copyFile(srcFile, destFile);
+  log.success(`Installed verify skill: ${path.relative(projectRoot, destFile)}`);
+}
+
+/**
+ * Uninstall verify-jira-ticket skill for a specific tool.
+ */
+export function uninstallVerifySkill(projectRoot, toolKey) {
+  const config = getToolConfig(toolKey);
+  if (!config) return;
+
+  const destDir = config.verifySkillDir(projectRoot);
+  const destFile = path.join(destDir, config.verifySkillFile);
+
+  if (removeFile(destFile)) {
+    log.success(`Removed: ${path.relative(projectRoot, destFile)}`);
+    removeDirIfEmpty(destDir);
+  } else {
+    log.info(`Verify skill not found: ${path.relative(projectRoot, destFile)}`);
   }
 }

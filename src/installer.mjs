@@ -10,6 +10,8 @@ import {
   uninstallConfluenceSkill,
   installTrelloSkill,
   uninstallTrelloSkill,
+  installVerifySkill,
+  uninstallVerifySkill,
 } from './writers/skill-writer.mjs';
 import { installMcp, uninstallMcp } from './writers/mcp-writer.mjs';
 import { installSettings, uninstallSettings } from './writers/settings-writer.mjs';
@@ -57,6 +59,7 @@ async function runInstall(args) {
     console.log(`\n  ${pc.dim('─')} ${pc.bold(label)}`);
 
     installSkill(projectRoot, toolKey);
+    installVerifySkill(projectRoot, toolKey);
     if (config.confluenceEnabled) {
       installConfluenceSkill(projectRoot, toolKey);
     }
@@ -126,6 +129,7 @@ async function runUninstall(args) {
     console.log(`\n  ${pc.dim('─')} ${pc.bold(label)}`);
 
     uninstallSkill(projectRoot, toolKey);
+    uninstallVerifySkill(projectRoot, toolKey);
     uninstallConfluenceSkill(projectRoot, toolKey);
     uninstallTrelloSkill(projectRoot, toolKey);
     uninstallMcp(projectRoot, toolKey);
@@ -152,6 +156,9 @@ function printUsageGuide(config) {
   );
   console.log(
     `    ${pc.cyan(`/resolve-jira-ticket ${config.projectKey}-123`)}  ${pc.dim('Work on a specific ticket')}`,
+  );
+  console.log(
+    `    ${pc.cyan(`/verify-jira-ticket ${config.projectKey}-123`)}   ${pc.dim('Verify ticket via live API calls')}`,
   );
   if (config.confluenceEnabled) {
     console.log('');
